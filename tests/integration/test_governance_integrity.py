@@ -58,3 +58,50 @@ def test_profile_fact_with_existing_source_is_valid() -> None:
         assert valid_fact.source_id == source.source_id
 
         session.rollback()
+
+
+def test_source_rejects_invalid_source_type() -> None:
+    invalid_source = Source(
+        source_type="PATATA",
+        captured_at=datetime.now(timezone.utc),
+        authority_level="TEST",
+        metadata_json={},
+        immutable=True,
+    )
+
+    with Session(engine) as session:
+        session.add(invalid_source)
+
+        with pytest.raises(IntegrityError):
+            session.flush()
+
+        session.rollback()
+
+
+def test_profile_fact_rejects_invalid_evidence_state() -> None:
+    source = Source(
+        source_type=SourceType.USER.value,
+        captured_at=datetime.now(timezone.utc),
+        authority_level="TEST",
+        metadata_json={},
+        immutable=True,
+    )
+
+    with Session(engine) as session:
+        session.add(source)
+        session.flush()
+
+        invalid_fact = ProfileFact(
+            fact_type="test_fact",
+            subject="governance_test",
+            value_json={"value": "test"},
+            evidence_state="MAYBE",
+            source_id=source.source_id,
+        )
+
+        session.add(invalid_fact)
+
+        with pytest.raises(IntegrityError):
+            session.flush()
+
+        session.rollback()

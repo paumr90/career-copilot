@@ -1,16 +1,29 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, func
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    String,
+    func,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.domain.enums import SourceType
 from app.infrastructure.db.base import Base
 
 
 class Source(Base):
     __tablename__ = "sources"
+
+    __table_args__ = (
+        CheckConstraint(
+            "source_type IN ('PROFILE', 'CV', 'JD', 'EMAIL', 'ATS', 'USER', 'INTERVIEW', 'FEEDBACK')",
+            name="ck_sources_source_type_valid",
+        ),
+    )
 
     source_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -66,8 +79,16 @@ class Source(Base):
         default=True,
     )
 
+
 class ProfileFact(Base):
     __tablename__ = "profile_facts"
+
+    __table_args__ = (
+        CheckConstraint(
+            "evidence_state IN ('CONFIRMED', 'INFERRED', 'UNKNOWN')",
+            name="ck_profile_facts_evidence_state_valid",
+        ),
+    )
 
     fact_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
