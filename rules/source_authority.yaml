@@ -1,0 +1,83 @@
+version: "0.1"
+
+principles:
+  - "Authority depends on the information domain."
+  - "A derived artifact never creates new canonical facts."
+  - "LLM inference is never authoritative by itself."
+  - "Recency only resolves conflicts between sources with comparable authority."
+  - "UNKNOWN must remain UNKNOWN when evidence is insufficient."
+  - "Manual user confirmation may resolve ambiguity, but the original source must remain traceable."
+
+domains:
+
+  professional_profile:
+    description: "Stable professional facts: roles, dates, responsibilities, education, skills, projects and confirmed results."
+    priority:
+      PROFILE: 100
+      USER: 95
+      CV: 80
+      FEEDBACK: 40
+      INTERVIEW: 30
+    rules:
+      - "PROFILE is the canonical source for stable professional facts."
+      - "USER may explicitly confirm or correct a professional fact."
+      - "CV is derived evidence and must not create facts absent from PROFILE or explicit USER confirmation."
+      - "INFERRED facts never override CONFIRMED facts."
+
+  job_description:
+    description: "Requirements, responsibilities, location and conditions stated in a specific job description."
+    priority:
+      JD: 100
+      USER: 70
+    rules:
+      - "The frozen JD snapshot is the canonical source for the analyzed opportunity."
+      - "A later change to the external job posting creates a new snapshot."
+      - "LLM extraction may structure the JD but cannot modify its meaning."
+
+  application_status:
+    description: "Current state of a recruitment process."
+    priority:
+      ATS: 100
+      EMAIL: 95
+      USER: 85
+    rules:
+      - "ATS or recruitment portal evidence has the highest authority for process status."
+      - "Process emails are authoritative when they explicitly communicate a status or outcome."
+      - "USER input may record a status when external evidence is unavailable."
+      - "Application status is derived from authoritative application events, not directly edited."
+      - "When comparable authoritative sources conflict, the latest authoritative event wins."
+
+  interview:
+    description: "Interview invitation, scheduling, completion and interview-specific evidence."
+    priority:
+      EMAIL: 100
+      INTERVIEW: 95
+      ATS: 90
+      USER: 80
+    rules:
+      - "An explicit interview invitation is authoritative evidence of an interview event."
+      - "Interview notes may record what happened but do not rewrite unrelated canonical professional facts."
+
+  feedback:
+    description: "Recruitment feedback and process evaluation."
+    priority:
+      FEEDBACK: 100
+      EMAIL: 90
+      INTERVIEW: 80
+      USER: 70
+    rules:
+      - "Explicit recruiter or interviewer feedback is preserved as evidence."
+      - "Feedback may inform future recommendations but does not automatically modify professional facts."
+
+conflict_resolution:
+  order:
+    - "domain_authority"
+    - "evidence_state"
+    - "event_recency"
+    - "explicit_user_resolution"
+
+  rules:
+    - "A lower-authority source never silently overwrites a higher-authority source."
+    - "CONFIRMED evidence takes precedence over INFERRED evidence at comparable authority."
+    - "Recency is considered only after authority and evidence quality."
+    - "Unresolved conflicts must remain explicit and auditable."
