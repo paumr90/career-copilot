@@ -64,3 +64,8 @@ class FitRecommendation(StrEnum):
     APPLY = "APPLY"
     REVIEW = "REVIEW"
     NO_APPLY = "NO_APPLY"
+
+
+class EvidenceTier(StrEnum):
+    PRIMARY = "PRIMARY"
+    SUPPORTING = "SUPPORTING"

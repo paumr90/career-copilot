@@ -1,0 +1,87 @@
+version: "0.1"
+
+requirement_categories:
+
+  EXPERIENCE:
+    primary_fact_types:
+      - employment
+      - project
+      - achievement
+    supporting_fact_types:
+      - skill
+      - professional_summary
+
+  EDUCATION:
+    primary_fact_types:
+      - education
+      - certification
+    supporting_fact_types: []
+
+  SKILL:
+    primary_fact_types:
+      - skill
+    supporting_fact_types:
+      - employment
+      - project
+      - education
+
+  LANGUAGE:
+    primary_fact_types:
+      - language
+    supporting_fact_types: []
+
+  INDUSTRY:
+    primary_fact_types:
+      - employment
+      - project
+    supporting_fact_types:
+      - professional_summary
+
+  TECHNOLOGY:
+    primary_fact_types:
+      - skill
+      - employment
+      - project
+    supporting_fact_types:
+      - education
+      - certification
+
+  RESPONSIBILITY:
+    primary_fact_types:
+      - employment
+      - project
+      - achievement
+    supporting_fact_types:
+      - professional_summary
+
+  LOCATION:
+    primary_fact_types:
+      - work_preference
+    supporting_fact_types: []
+
+  WORK_MODE:
+    primary_fact_types:
+      - work_preference
+    supporting_fact_types: []
+
+  COMPENSATION:
+    primary_fact_types:
+      - compensation_preference
+    supporting_fact_types: []
+
+  OTHER:
+    primary_fact_types: []
+    supporting_fact_types:
+      - professional_summary
+      - positioning
+      - career_objective
+
+principles:
+  - "Evidence retrieval only identifies candidate Career Master facts."
+  - "Evidence retrieval never decides MATCH, PARTIAL_MATCH, GAP or UNKNOWN."
+  - "Only active, confirmed facts from the immutable canonical PROFILE source are eligible."
+  - "Primary facts carry direct evidence; supporting facts provide context only."
+  - "Absence of candidate evidence never implies GAP."
+  - "GAP requires explicit evidence of non-compliance or contradiction."
+  - "Keyword overlap alone is never sufficient to establish MATCH."
+  - "UNKNOWN is preferred when available evidence is insufficient to support a conclusion."

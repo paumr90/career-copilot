@@ -3,8 +3,11 @@ import uuid
 from pydantic import BaseModel, Field, model_validator
 
 from app.domain.enums import (
+    EvidenceTier,
     FitRecommendation,
     MatchStatus,
+    ProfileFactType,
+    RequirementCategory,
     RequirementPriority,
 )
 
@@ -50,7 +53,8 @@ class RequirementAssessment(BaseModel):
             )
 
         if (
-            self.match_status == MatchStatus.UNKNOWN
+            self.match_status
+            == MatchStatus.UNKNOWN
             and self.evidence
         ):
             raise ValueError(
@@ -89,7 +93,8 @@ class FitScoringRequirement(BaseModel):
 
         if (
             self.blocking
-            and self.priority != RequirementPriority.MUST_HAVE
+            and self.priority
+            != RequirementPriority.MUST_HAVE
         ):
             raise ValueError(
                 "blocking=True is only valid for MUST_HAVE requirements."
@@ -126,5 +131,43 @@ class FitResult(BaseModel):
     )
 
     review_required_keys: list[str] = Field(
+        default_factory=list,
+    )
+
+
+class CareerEvidenceCandidate(BaseModel):
+    profile_fact_id: uuid.UUID
+
+    fact_type: ProfileFactType
+
+    subject: str = Field(
+        min_length=1,
+        max_length=255,
+    )
+
+    value_json: dict
+
+    tier: EvidenceTier
+
+
+class EvidenceCandidateSet(BaseModel):
+    requirement_key: str = Field(
+        min_length=1,
+        max_length=150,
+    )
+
+    requirement_category: RequirementCategory
+
+    retrieval_rule_version: str
+
+    primary_candidates: list[
+        CareerEvidenceCandidate
+    ] = Field(
+        default_factory=list,
+    )
+
+    supporting_candidates: list[
+        CareerEvidenceCandidate
+    ] = Field(
         default_factory=list,
     )
