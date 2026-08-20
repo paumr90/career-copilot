@@ -6,7 +6,9 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     String,
+    text,
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -22,6 +24,14 @@ class Source(Base):
         CheckConstraint(
             "source_type IN ('PROFILE', 'CV', 'JD', 'EMAIL', 'ATS', 'USER', 'INTERVIEW', 'FEEDBACK')",
             name="ck_sources_source_type_valid",
+        ),
+        Index(
+            "uq_sources_profile_external_id",
+            "external_id",
+            unique=True,
+            postgresql_where=text(
+                "source_type = 'PROFILE' AND external_id IS NOT NULL"
+            ),
         ),
     )
 

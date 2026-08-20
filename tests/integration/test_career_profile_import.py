@@ -1,10 +1,13 @@
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.infrastructure.db.session import engine
+from app.modules.governance.models import Source
 from app.modules.profile.importer import CareerProfileImporter
 from app.modules.profile.loader import CareerProfileSeedLoader
 
@@ -115,3 +118,65 @@ def test_seed_with_modified_content_is_rejected(
             manifest_path,
             profile_path,
         )
+
+
+def test_duplicate_profile_seed_version_is_rejected() -> None:
+    loader = CareerProfileSeedLoader()
+    importer = CareerProfileImporter()
+
+    seed = loader.load(
+        SEED_DIR / "manifest.example.json",
+        SEED_DIR / "profile.example.json",
+    )
+
+    with Session(engine) as session:
+        importer.import_seed(
+            session=session,
+            seed=seed,
+        )
+
+        with pytest.raises(IntegrityError):
+            importer.import_seed(
+                session=session,
+                seed=seed,
+            )
+
+        session.rollback()
+
+
+def test_non_profile_sources_can_reuse_external_id() -> None:
+    shared_external_id = "example-shared-external-id"
+
+    source_a = Source(
+        source_type="JD",
+        external_id=shared_external_id,
+        captured_at=datetime.now(timezone.utc),
+        metadata_json={},
+        authority_level="TEST",
+        immutable=True,
+    )
+
+    source_b = Source(
+        source_type="JD",
+        external_id=shared_external_id,
+        captured_at=datetime.now(timezone.utc),
+        metadata_json={},
+        authority_level="TEST",
+        immutable=True,
+    )
+
+    with Session(engine) as session:
+        session.add_all(
+            [
+                source_a,
+                source_b,
+            ]
+        )
+
+        session.flush()
+
+        assert source_a.source_id is not None
+        assert source_b.source_id is not None
+        assert source_a.external_id == source_b.external_id
+
+        session.rollback()
