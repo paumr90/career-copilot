@@ -31,3 +31,23 @@ class ProfileFactType(StrEnum):
     CAREER_OBJECTIVE = "career_objective"
     WORK_PREFERENCE = "work_preference"
     COMPENSATION_PREFERENCE = "compensation_preference"
+
+
+class RequirementPriority(StrEnum):
+    MUST_HAVE = "MUST_HAVE"
+    NICE_TO_HAVE = "NICE_TO_HAVE"
+    SECONDARY = "SECONDARY"
+
+
+class RequirementCategory(StrEnum):
+    EXPERIENCE = "EXPERIENCE"
+    EDUCATION = "EDUCATION"
+    SKILL = "SKILL"
+    LANGUAGE = "LANGUAGE"
+    INDUSTRY = "INDUSTRY"
+    TECHNOLOGY = "TECHNOLOGY"
+    RESPONSIBILITY = "RESPONSIBILITY"
+    LOCATION = "LOCATION"
+    WORK_MODE = "WORK_MODE"
+    COMPENSATION = "COMPENSATION"
+    OTHER = "OTHER"
