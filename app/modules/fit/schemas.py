@@ -2,7 +2,11 @@ import uuid
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.domain.enums import MatchStatus
+from app.domain.enums import (
+    FitRecommendation,
+    MatchStatus,
+    RequirementPriority,
+)
 
 
 class ProfileEvidenceReference(BaseModel):
@@ -56,3 +60,71 @@ class RequirementAssessment(BaseModel):
             )
 
         return self
+
+
+class FitScoringRequirement(BaseModel):
+    requirement_key: str = Field(
+        min_length=1,
+        max_length=150,
+    )
+
+    priority: RequirementPriority
+
+    blocking: bool = False
+
+    assessment: RequirementAssessment
+
+    @model_validator(mode="after")
+    def validate_requirement_consistency(
+        self,
+    ) -> "FitScoringRequirement":
+        if (
+            self.requirement_key
+            != self.assessment.requirement_key
+        ):
+            raise ValueError(
+                "FitScoringRequirement requirement_key must match "
+                "RequirementAssessment requirement_key."
+            )
+
+        if (
+            self.blocking
+            and self.priority != RequirementPriority.MUST_HAVE
+        ):
+            raise ValueError(
+                "blocking=True is only valid for MUST_HAVE requirements."
+            )
+
+        return self
+
+
+class FitResult(BaseModel):
+    score: float = Field(
+        ge=0.0,
+        le=100.0,
+    )
+
+    recommendation: FitRecommendation
+
+    rule_version: str
+
+    known_weight: float = Field(
+        ge=0.0,
+    )
+
+    total_weight: float = Field(
+        ge=0.0,
+    )
+
+    coverage_percent: float = Field(
+        ge=0.0,
+        le=100.0,
+    )
+
+    blocking_gap_keys: list[str] = Field(
+        default_factory=list,
+    )
+
+    review_required_keys: list[str] = Field(
+        default_factory=list,
+    )

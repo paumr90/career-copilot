@@ -58,3 +58,9 @@ class MatchStatus(StrEnum):
     PARTIAL_MATCH = "PARTIAL_MATCH"
     GAP = "GAP"
     UNKNOWN = "UNKNOWN"
+
+
+class FitRecommendation(StrEnum):
+    APPLY = "APPLY"
+    REVIEW = "REVIEW"
+    NO_APPLY = "NO_APPLY"
