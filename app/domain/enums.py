@@ -51,3 +51,10 @@ class RequirementCategory(StrEnum):
     WORK_MODE = "WORK_MODE"
     COMPENSATION = "COMPENSATION"
     OTHER = "OTHER"
+
+
+class MatchStatus(StrEnum):
+    MATCH = "MATCH"
+    PARTIAL_MATCH = "PARTIAL_MATCH"
+    GAP = "GAP"
+    UNKNOWN = "UNKNOWN"
