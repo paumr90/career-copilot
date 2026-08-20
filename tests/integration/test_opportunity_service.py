@@ -1,3 +1,5 @@
+import pytest
+from pydantic import ValidationError
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -11,10 +13,8 @@ from app.modules.opportunities.schemas import (
 from app.modules.opportunities.service import OpportunityService
 
 
-def test_job_description_can_be_created_with_rollback() -> None:
-    service = OpportunityService()
-
-    job_description = JobDescriptionInput(
+def build_example_job_description() -> JobDescriptionInput:
+    return JobDescriptionInput(
         company="Example Technology Company",
         role_title="Digital Transformation Program Manager",
         location="Barcelona",
@@ -46,6 +46,11 @@ def test_job_description_can_be_created_with_rollback() -> None:
             ),
         ],
     )
+
+
+def test_job_description_can_be_created_with_rollback() -> None:
+    service = OpportunityService()
+    job_description = build_example_job_description()
 
     with Session(engine) as session:
         sources_before = session.scalar(
@@ -117,3 +122,81 @@ def test_job_description_can_be_created_with_rollback() -> None:
         assert session.scalar(
             select(func.count()).select_from(JobRequirement)
         ) == requirements_before
+
+
+def test_snapshot_hash_is_deterministic() -> None:
+    service = OpportunityService()
+
+    raw_text = (
+        "Example job description with project management "
+        "and transformation requirements."
+    )
+
+    hash_a = service.calculate_snapshot_hash(raw_text)
+    hash_b = service.calculate_snapshot_hash(raw_text)
+
+    assert hash_a == hash_b
+    assert len(hash_a) == 64
+
+
+def test_snapshot_hash_changes_when_job_description_changes() -> None:
+    service = OpportunityService()
+
+    original_hash = service.calculate_snapshot_hash(
+        "Project management experience required."
+    )
+
+    modified_hash = service.calculate_snapshot_hash(
+        "Senior project management experience required."
+    )
+
+    assert original_hash != modified_hash
+
+
+def test_duplicate_requirement_keys_are_rejected() -> None:
+    with pytest.raises(
+        ValidationError,
+        match="Duplicate requirement_key",
+    ):
+        JobDescriptionInput(
+            company="Example Company",
+            role_title="Program Manager",
+            location="Barcelona",
+            raw_text="Example job description.",
+            requirements=[
+                JobRequirementInput(
+                    requirement_key="project_management",
+                    description="Project management experience",
+                    priority="MUST_HAVE",
+                    category="EXPERIENCE",
+                    blocking=True,
+                ),
+                JobRequirementInput(
+                    requirement_key="project_management",
+                    description="Strong project management skills",
+                    priority="NICE_TO_HAVE",
+                    category="SKILL",
+                    blocking=False,
+                ),
+            ],
+        )
+
+
+def test_opportunity_service_always_creates_jd_source() -> None:
+    service = OpportunityService()
+    job_description = build_example_job_description()
+
+    with Session(engine) as session:
+        source, opportunity, requirements = (
+            service.create_from_job_description(
+                session=session,
+                job_description=job_description,
+                external_id="example-jd-source-type",
+            )
+        )
+
+        assert source.source_type == "JD"
+        assert opportunity.jd_source_id == source.source_id
+        assert len(requirements) == 2
+
+        session.rollback()

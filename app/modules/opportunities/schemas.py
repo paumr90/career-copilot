@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.domain.enums import (
     RequirementCategory,
@@ -50,3 +50,20 @@ class JobDescriptionInput(BaseModel):
     )
 
     requirements: list[JobRequirementInput]
+
+    @model_validator(mode="after")
+    def validate_unique_requirement_keys(
+        self,
+    ) -> "JobDescriptionInput":
+        requirement_keys = [
+            requirement.requirement_key
+            for requirement in self.requirements
+        ]
+
+        if len(requirement_keys) != len(set(requirement_keys)):
+            raise ValueError(
+                "Duplicate requirement_key values are not allowed "
+                "within the same job description."
+            )
+
+        return self
