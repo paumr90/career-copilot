@@ -1,6 +1,10 @@
 import uuid
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    model_validator,
+)
 
 from app.domain.enums import (
     EvidenceTier,
@@ -100,7 +104,8 @@ class RequirementAssessment(BaseModel):
             )
 
         if (
-            self.match_status == MatchStatus.UNKNOWN
+            self.match_status
+            == MatchStatus.UNKNOWN
             and self.evidence
         ):
             raise ValueError(
@@ -260,3 +265,85 @@ class EvidenceRankingResult(BaseModel):
     )
 
     used_fallback: bool = False
+
+
+class SemanticAssessmentRequirement(BaseModel):
+    requirement_key: str = Field(
+        min_length=1,
+        max_length=150,
+    )
+
+    description: str = Field(
+        min_length=1,
+        max_length=2000,
+    )
+
+    priority: RequirementPriority
+
+    category: RequirementCategory
+
+    blocking: bool = False
+
+    evidence_text: str | None = Field(
+        default=None,
+        max_length=4000,
+    )
+
+
+class SemanticAssessmentEvidence(BaseModel):
+    profile_fact_id: uuid.UUID
+
+    fact_type: ProfileFactType
+
+    tier: EvidenceTier
+
+    subject: str = Field(
+        min_length=1,
+        max_length=255,
+    )
+
+    value_json: dict
+
+    relevance_score: float = Field(
+        ge=0.0,
+    )
+
+    matched_terms: list[str] = Field(
+        default_factory=list,
+    )
+
+
+class SemanticAssessmentRequest(BaseModel):
+    semantic_rule_version: str
+
+    retrieval_rule_version: str
+
+    ranking_rule_version: str
+
+    requirement: SemanticAssessmentRequirement
+
+    ranked_evidence: list[
+        SemanticAssessmentEvidence
+    ] = Field(
+        default_factory=list,
+    )
+
+    @model_validator(mode="after")
+    def validate_unique_evidence(
+        self,
+    ) -> "SemanticAssessmentRequest":
+        evidence_ids = [
+            evidence.profile_fact_id
+            for evidence in self.ranked_evidence
+        ]
+
+        if len(evidence_ids) != len(
+            set(evidence_ids)
+        ):
+            raise ValueError(
+                "SemanticAssessmentRequest cannot "
+                "contain duplicate profile_fact_id "
+                "values."
+            )
+
+        return self

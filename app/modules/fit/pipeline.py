@@ -10,6 +10,9 @@ from app.modules.audit.service import RuleEvaluationService
 from app.modules.fit.assessment import (
     RequirementAssessmentValidator,
 )
+from app.modules.fit.providers import (
+    SemanticAssessmentProvider,
+)
 from app.modules.fit.ranking import (
     EvidenceRelevanceRanker,
 )
@@ -21,6 +24,9 @@ from app.modules.fit.schemas import (
     FitResult,
     RequirementAssessment,
     RequirementAssessmentProposal,
+)
+from app.modules.fit.semantic import (
+    SemanticAssessmentRequestBuilder,
 )
 from app.modules.fit.service import (
     FitEvaluationService,
@@ -46,6 +52,9 @@ class RequirementAssessmentPipeline:
         validator: RequirementAssessmentValidator | None = None,
         fit_service: FitEvaluationService | None = None,
         audit_service: RuleEvaluationService | None = None,
+        semantic_request_builder: (
+            SemanticAssessmentRequestBuilder | None
+        ) = None,
     ) -> None:
         self.retriever = (
             retriever or CareerEvidenceRetriever()
@@ -66,6 +75,11 @@ class RequirementAssessmentPipeline:
 
         self.audit_service = (
             audit_service or RuleEvaluationService()
+        )
+
+        self.semantic_request_builder = (
+            semantic_request_builder
+            or SemanticAssessmentRequestBuilder()
         )
 
     def _load_canonical_requirements(
@@ -152,6 +166,42 @@ class RequirementAssessmentPipeline:
 
         return contexts
 
+    def propose_with_provider(
+        self,
+        session: Session,
+        *,
+        opportunity_id: uuid.UUID,
+        provider: SemanticAssessmentProvider,
+    ) -> list[
+        RequirementAssessmentProposal
+    ]:
+        contexts = self.prepare_context(
+            session=session,
+            opportunity_id=opportunity_id,
+        )
+
+        proposals: list[
+            RequirementAssessmentProposal
+        ] = []
+
+        for context in contexts:
+            request = (
+                self.semantic_request_builder.build(
+                    requirement=context.requirement,
+                    ranking_result=(
+                        context.ranking_result
+                    ),
+                )
+            )
+
+            proposal = provider.propose(
+                request=request
+            )
+
+            proposals.append(proposal)
+
+        return proposals
+
     def _validate_proposal_keys(
         self,
         *,
@@ -209,6 +259,7 @@ class RequirementAssessmentPipeline:
         proposals: list[
             RequirementAssessmentProposal
         ],
+        proposal_origin: dict | None = None,
     ) -> dict:
         context_payloads = []
 
@@ -286,24 +337,40 @@ class RequirementAssessmentPipeline:
                 }
             )
 
+        rules_snapshot = {
+            "evidence_retrieval": (
+                self.retriever.policy.config
+            ),
+            "evidence_ranking": (
+                self.ranker.policy.config
+            ),
+            "requirement_assessment": (
+                self.validator.policy.config
+            ),
+        }
+
+        resolved_origin = (
+            proposal_origin
+            or {
+                "mode": "manual",
+            }
+        )
+
+        if resolved_origin.get("mode") == "provider":
+            rules_snapshot["semantic_assessment"] = (
+                self.semantic_request_builder
+                .policy.config
+            )
+
         return {
             "opportunity_id": str(opportunity_id),
+            "proposal_origin": resolved_origin,
             "contexts": context_payloads,
             "proposals": [
                 proposal.model_dump(mode="json")
                 for proposal in proposals
             ],
-            "rules_snapshot": {
-                "evidence_retrieval": (
-                    self.retriever.policy.config
-                ),
-                "evidence_ranking": (
-                    self.ranker.policy.config
-                ),
-                "requirement_assessment": (
-                    self.validator.policy.config
-                ),
-            },
+            "rules_snapshot": rules_snapshot,
         }
 
     def evaluate_proposals_and_record(
@@ -314,6 +381,7 @@ class RequirementAssessmentPipeline:
         proposals: list[
             RequirementAssessmentProposal
         ],
+        proposal_origin: dict | None = None,
     ) -> tuple[
         FitResult,
         RuleEvaluation,
@@ -362,6 +430,7 @@ class RequirementAssessmentPipeline:
                 opportunity_id=opportunity_id,
                 contexts=contexts,
                 proposals=proposals,
+                proposal_origin=proposal_origin,
             )
         )
 
@@ -401,4 +470,57 @@ class RequirementAssessmentPipeline:
             fit_evaluation,
             assessment_evaluation,
             assessments,
+        )
+
+    def evaluate_with_provider_and_record(
+        self,
+        session: Session,
+        *,
+        opportunity_id: uuid.UUID,
+        provider: SemanticAssessmentProvider,
+    ) -> tuple[
+        FitResult,
+        RuleEvaluation,
+        RuleEvaluation,
+        list[RequirementAssessment],
+        list[RequirementAssessmentProposal],
+    ]:
+        proposals = self.propose_with_provider(
+            session=session,
+            opportunity_id=opportunity_id,
+            provider=provider,
+        )
+
+        proposal_origin = {
+            "mode": "provider",
+            "provider_name": (
+                provider.provider_name
+            ),
+            "provider_version": (
+                provider.provider_version
+            ),
+            "semantic_rule_version": (
+                self.semantic_request_builder
+                .policy.version
+            ),
+        }
+
+        (
+            result,
+            fit_evaluation,
+            assessment_evaluation,
+            assessments,
+        ) = self.evaluate_proposals_and_record(
+            session=session,
+            opportunity_id=opportunity_id,
+            proposals=proposals,
+            proposal_origin=proposal_origin,
+        )
+
+        return (
+            result,
+            fit_evaluation,
+            assessment_evaluation,
+            assessments,
+            proposals,
         )

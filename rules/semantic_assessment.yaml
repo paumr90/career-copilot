@@ -1,0 +1,66 @@
+version: "0.1"
+
+role: "requirement_assessment_proposer"
+
+input:
+  include_requirement:
+    - requirement_key
+    - description
+    - priority
+    - category
+    - blocking
+    - evidence_text
+
+  include_ranked_evidence:
+    - profile_fact_id
+    - fact_type
+    - tier
+    - subject
+    - value_json
+    - relevance_score
+    - matched_terms
+
+  maximum_ranked_evidence: 8
+
+output:
+  schema: "RequirementAssessmentProposal"
+
+  allowed_statuses:
+    - "MATCH"
+    - "PARTIAL_MATCH"
+    - "GAP"
+    - "UNKNOWN"
+
+  allowed_gap_bases:
+    - "EXPLICIT_CONTRADICTION"
+    - "NUMERIC_SHORTFALL"
+    - "EXPLICIT_NON_COMPLIANCE"
+
+guardrails:
+  evidence_ids_must_come_from_input: true
+  absence_of_evidence_means_unknown: true
+  lexical_overlap_is_not_match_proof: true
+  supporting_evidence_alone_is_not_match_proof: true
+  gap_requires_affirmative_basis: true
+  may_interpret_transferable_experience: true
+  may_interpret_semantic_equivalence: true
+
+forbidden:
+  - "Invent or infer Career Master facts that are not present in the supplied evidence."
+  - "Cite a profile_fact_id that was not supplied in the ranked evidence."
+  - "Treat lexical similarity as sufficient proof of MATCH."
+  - "Treat absence of evidence as GAP."
+  - "Upgrade PARTIAL_MATCH to MATCH merely to improve the final fit score."
+  - "Calculate the numerical Fit Score."
+  - "Decide APPLY, REVIEW or NO_APPLY."
+  - "Modify requirement priority or blocking status."
+  - "Modify the Job Description."
+  - "Modify Career Master facts."
+
+principles:
+  - "The semantic assessor proposes; deterministic validation decides whether the proposal is admissible."
+  - "UNKNOWN is preferred over unsupported certainty."
+  - "Transferable experience may justify PARTIAL_MATCH when direct equivalence is not established."
+  - "MATCH requires evidence that directly or defensibly satisfies the requirement."
+  - "GAP requires affirmative evidence of contradiction, explicit non-compliance or measurable shortfall."
+  - "The assessor must explain its reasoning using only the supplied requirement and ranked Career Master evidence."
