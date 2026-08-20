@@ -9,7 +9,6 @@ from app.infrastructure.db.session import engine
 from app.modules.audit.models import RuleEvaluation
 from app.modules.audit.service import RuleEvaluationService
 from app.modules.fit.schemas import (
-    FitScoringRequirement,
     ProfileEvidenceReference,
     RequirementAssessment,
 )
@@ -17,6 +16,17 @@ from app.modules.fit.service import FitEvaluationService
 from app.modules.governance.models import (
     ProfileFact,
     Source,
+)
+from app.modules.opportunities.models import (
+    JobRequirement,
+    Opportunity,
+)
+from app.modules.opportunities.schemas import (
+    JobDescriptionInput,
+    JobRequirementInput,
+)
+from app.modules.opportunities.service import (
+    OpportunityService,
 )
 
 
@@ -31,9 +41,11 @@ def get_canonical_profile_fact_id(
         )
         .where(
             Source.source_type == "PROFILE",
-            Source.authority_level == "CANONICAL_PROFILE",
+            Source.authority_level
+            == "CANONICAL_PROFILE",
             Source.immutable.is_(True),
-            ProfileFact.evidence_state == "CONFIRMED",
+            ProfileFact.evidence_state
+            == "CONFIRMED",
             ProfileFact.superseded_by.is_(None),
         )
         .limit(1)
@@ -44,60 +56,101 @@ def get_canonical_profile_fact_id(
     return fact_id
 
 
-def build_evidence(
-    profile_fact_id: uuid.UUID,
-) -> ProfileEvidenceReference:
-    return ProfileEvidenceReference(
-        profile_fact_id=profile_fact_id,
-        note="Confirmed Career Master evidence.",
+def build_job_description() -> JobDescriptionInput:
+    return JobDescriptionInput(
+        company="Example Technology Company",
+        role_title=(
+            "Digital Transformation Program Manager"
+        ),
+        location="Barcelona",
+        raw_text=(
+            "Project management experience is required. "
+            "Cloud-platform experience is preferred."
+        ),
+        requirements=[
+            JobRequirementInput(
+                requirement_key="project_management",
+                description=(
+                    "Project management experience"
+                ),
+                priority="MUST_HAVE",
+                category="EXPERIENCE",
+                blocking=False,
+                evidence_text=(
+                    "Project management experience "
+                    "is required."
+                ),
+            ),
+            JobRequirementInput(
+                requirement_key="cloud_platform",
+                description=(
+                    "Cloud-platform experience"
+                ),
+                priority="NICE_TO_HAVE",
+                category="TECHNOLOGY",
+                blocking=False,
+                evidence_text=(
+                    "Cloud-platform experience "
+                    "is preferred."
+                ),
+            ),
+        ],
     )
 
 
-def test_fit_evaluation_can_be_audited_with_rollback() -> None:
-    service = FitEvaluationService()
+def build_assessments(
+    profile_fact_id: uuid.UUID,
+) -> list[RequirementAssessment]:
+    return [
+        RequirementAssessment(
+            requirement_key="project_management",
+            match_status="MATCH",
+            evidence=[
+                ProfileEvidenceReference(
+                    profile_fact_id=profile_fact_id,
+                    note=(
+                        "Confirmed Career Master evidence."
+                    ),
+                )
+            ],
+            rationale=(
+                "Career Master evidence supports "
+                "the requirement."
+            ),
+        ),
+        RequirementAssessment(
+            requirement_key="cloud_platform",
+            match_status="UNKNOWN",
+            evidence=[],
+            rationale=(
+                "Career Master contains insufficient "
+                "evidence about this requirement."
+            ),
+        ),
+    ]
+
+
+def test_real_opportunity_fit_can_be_audited() -> None:
+    opportunity_service = OpportunityService()
+    fit_service = FitEvaluationService()
     audit_service = RuleEvaluationService()
 
-    opportunity_id = uuid.uuid4()
-
     with Session(engine) as session:
-        profile_fact_id = get_canonical_profile_fact_id(
-            session
+        sources_before = session.scalar(
+            select(func.count()).select_from(Source)
         )
 
-        requirements = [
-            FitScoringRequirement(
-                requirement_key="project_management",
-                priority="MUST_HAVE",
-                blocking=False,
-                assessment=RequirementAssessment(
-                    requirement_key="project_management",
-                    match_status="MATCH",
-                    evidence=[
-                        build_evidence(
-                            profile_fact_id
-                        )
-                    ],
-                    rationale=(
-                        "Career Master evidence supports "
-                        "the requirement."
-                    ),
-                ),
-            ),
-            FitScoringRequirement(
-                requirement_key="cloud_platform",
-                priority="NICE_TO_HAVE",
-                blocking=False,
-                assessment=RequirementAssessment(
-                    requirement_key="cloud_platform",
-                    match_status="UNKNOWN",
-                    evidence=[],
-                    rationale=(
-                        "Career Master contains insufficient "
-                        "evidence about this requirement."
-                    ),
-                ),
-            ),
-        ]
+        opportunities_before = session.scalar(
+            select(func.count()).select_from(
+                Opportunity
+            )
+        )
+
+        requirements_before = session.scalar(
+            select(func.count()).select_from(
+                JobRequirement
+            )
+        )
 
         evaluations_before = session.scalar(
             select(func.count()).select_from(
@@ -105,32 +158,55 @@ def test_fit_evaluation_can_be_audited_with_rollback() -> None:
             )
         )
 
-        result, evaluation = (
-            service.evaluate_and_record(
-                session,
-                opportunity_id=opportunity_id,
-                requirements=requirements,
+        profile_fact_id = (
+            get_canonical_profile_fact_id(
+                session
             )
         )
 
+        source, opportunity, _ = (
+            opportunity_service.create_from_job_description(
+                session=session,
+                job_description=build_job_description(),
+                external_id="fit-test-jd-001",
+                uri="https://example.com/jobs/fit-test",
+            )
+        )
+
+        result, evaluation = (
+            fit_service.evaluate_opportunity_and_record(
+                session=session,
+                opportunity_id=(
+                    opportunity.opportunity_id
+                ),
+                assessments=build_assessments(
+                    profile_fact_id
+                ),
+            )
+        )
+
+        assert source.source_type == "JD"
+
         assert result.score == 100.0
         assert result.coverage_percent == 71.43
+
         assert (
             result.recommendation
             == FitRecommendation.APPLY
         )
 
-        assert evaluation.evaluation_id is not None
         assert evaluation.rule_set == "fit_scoring"
-        assert evaluation.ruleset_version == "0.1"
-        assert evaluation.entity_type == "opportunity"
-        assert evaluation.entity_id == opportunity_id
+
+        assert (
+            evaluation.entity_id
+            == opportunity.opportunity_id
+        )
 
         assert (
             evaluation.input_json[
-                "rules_snapshot"
-            ]["version"]
-            == "0.1"
+                "opportunity"
+            ]["jd_snapshot_hash"]
+            == source.snapshot_hash
         )
 
         assert len(
@@ -138,21 +214,27 @@ def test_fit_evaluation_can_be_audited_with_rollback() -> None:
         ) == 2
 
         assert (
-            evaluation.input_json["requirements"][0][
-                "assessment"
-            ]["evidence"][0]["profile_fact_id"]
-            == str(profile_fact_id)
-        )
-
-        assert evaluation.input_hash == (
-            audit_service.calculate_input_hash(
+            evaluation.input_hash
+            == audit_service.calculate_input_hash(
                 evaluation.input_json
             )
         )
 
-        assert evaluation.result_json == (
-            result.model_dump(mode="json")
-        )
+        assert session.scalar(
+            select(func.count()).select_from(Source)
+        ) == sources_before + 1
+
+        assert session.scalar(
+            select(func.count()).select_from(
+                Opportunity
+            )
+        ) == opportunities_before + 1
+
+        assert session.scalar(
+            select(func.count()).select_from(
+                JobRequirement
+            )
+        ) == requirements_before + 2
 
         assert session.scalar(
             select(func.count()).select_from(
@@ -164,43 +246,125 @@ def test_fit_evaluation_can_be_audited_with_rollback() -> None:
 
     with Session(engine) as session:
         assert session.scalar(
+            select(func.count()).select_from(Source)
+        ) == sources_before
+
+        assert session.scalar(
+            select(func.count()).select_from(
+                Opportunity
+            )
+        ) == opportunities_before
+
+        assert session.scalar(
+            select(func.count()).select_from(
+                JobRequirement
+            )
+        ) == requirements_before
+
+        assert session.scalar(
             select(func.count()).select_from(
                 RuleEvaluation
             )
         ) == evaluations_before
 
 
+def test_fake_opportunity_is_rejected() -> None:
+    fit_service = FitEvaluationService()
+
+    with Session(engine) as session:
+        with pytest.raises(
+            ValueError,
+            match=(
+                "Fit evaluation requires an existing "
+                "Opportunity"
+            ),
+        ):
+            fit_service.evaluate_opportunity_and_record(
+                session=session,
+                opportunity_id=uuid.uuid4(),
+                assessments=[],
+            )
+
+        session.rollback()
+
+
+def test_missing_assessment_is_rejected() -> None:
+    opportunity_service = OpportunityService()
+    fit_service = FitEvaluationService()
+
+    with Session(engine) as session:
+        profile_fact_id = (
+            get_canonical_profile_fact_id(
+                session
+            )
+        )
+
+        _, opportunity, _ = (
+            opportunity_service.create_from_job_description(
+                session=session,
+                job_description=build_job_description(),
+                external_id="fit-test-jd-missing",
+            )
+        )
+
+        assessments = build_assessments(
+            profile_fact_id
+        )
+
+        with pytest.raises(
+            ValueError,
+            match=(
+                "Assessment keys must exactly match "
+                "the canonical JobRequirements"
+            ),
+        ):
+            fit_service.evaluate_opportunity_and_record(
+                session=session,
+                opportunity_id=(
+                    opportunity.opportunity_id
+                ),
+                assessments=assessments[:1],
+            )
+
+        session.rollback()
+
+
 def test_fake_profile_evidence_is_rejected() -> None:
-    service = FitEvaluationService()
+    opportunity_service = OpportunityService()
+    fit_service = FitEvaluationService()
 
-    fake_profile_fact_id = uuid.uuid4()
+    with Session(engine) as session:
+        _, opportunity, _ = (
+            opportunity_service.create_from_job_description(
+                session=session,
+                job_description=build_job_description(),
+                external_id="fit-test-jd-fake-evidence",
+            )
+        )
 
-    requirements = [
-        FitScoringRequirement(
-            requirement_key="project_management",
-            priority="MUST_HAVE",
-            blocking=False,
-            assessment=RequirementAssessment(
+        assessments = [
+            RequirementAssessment(
                 requirement_key="project_management",
                 match_status="MATCH",
                 evidence=[
-                    build_evidence(
-                        fake_profile_fact_id
+                    ProfileEvidenceReference(
+                        profile_fact_id=uuid.uuid4(),
+                        note="Fake evidence.",
                     )
                 ],
                 rationale=(
-                    "This assessment uses invalid evidence."
+                    "This uses invalid evidence."
                 ),
             ),
-        )
-    ]
-
-    with Session(engine) as session:
-        evaluations_before = session.scalar(
-            select(func.count()).select_from(
-                RuleEvaluation
-            )
-        )
+            RequirementAssessment(
+                requirement_key="cloud_platform",
+                match_status="UNKNOWN",
+                evidence=[],
+                rationale=(
+                    "Insufficient evidence."
+                ),
+            ),
+        ]
 
         with pytest.raises(
             ValueError,
@@ -209,16 +373,55 @@ def test_fake_profile_evidence_is_rejected() -> None:
                 "confirmed, canonical Career Master facts"
             ),
         ):
-            service.evaluate_and_record(
-                session,
-                opportunity_id=uuid.uuid4(),
-                requirements=requirements,
+            fit_service.evaluate_opportunity_and_record(
+                session=session,
+                opportunity_id=(
+                    opportunity.opportunity_id
+                ),
+                assessments=assessments,
             )
 
-        assert session.scalar(
-            select(func.count()).select_from(
-                RuleEvaluation
+        session.rollback()
+
+
+def test_non_jd_opportunity_is_rejected() -> None:
+    fit_service = FitEvaluationService()
+
+    with Session(engine) as session:
+        profile_source = session.scalar(
+            select(Source)
+            .where(
+                Source.source_type == "PROFILE"
             )
-        ) == evaluations_before
+            .limit(1)
+        )
+
+        assert profile_source is not None
+
+        rogue_opportunity = Opportunity(
+            jd_source_id=profile_source.source_id,
+            company="Invalid Example",
+            role_title="Invalid Opportunity",
+            location="Barcelona",
+            raw_text="Invalid JD provenance.",
+        )
+
+        session.add(rogue_opportunity)
+        session.flush()
+
+        with pytest.raises(
+            ValueError,
+            match=(
+                "Fit evaluation requires an existing "
+                "Opportunity"
+            ),
+        ):
+            fit_service.evaluate_opportunity_and_record(
+                session=session,
+                opportunity_id=(
+                    rogue_opportunity.opportunity_id
+                ),
+                assessments=[],
+            )
 
         session.rollback()
