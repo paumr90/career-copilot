@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field, model_validator
 from app.domain.enums import (
     EvidenceTier,
     FitRecommendation,
+    GapBasis,
     MatchStatus,
     ProfileFactType,
     RequirementCategory,
@@ -21,6 +22,48 @@ class ProfileEvidenceReference(BaseModel):
     )
 
 
+class RequirementAssessmentProposal(BaseModel):
+    requirement_key: str = Field(
+        min_length=1,
+        max_length=150,
+    )
+
+    proposed_status: MatchStatus
+
+    evidence: list[
+        ProfileEvidenceReference
+    ] = Field(
+        default_factory=list,
+    )
+
+    rationale: str = Field(
+        min_length=1,
+        max_length=4000,
+    )
+
+    gap_basis: GapBasis | None = None
+
+    @model_validator(mode="after")
+    def validate_unique_evidence(
+        self,
+    ) -> "RequirementAssessmentProposal":
+        evidence_ids = [
+            evidence.profile_fact_id
+            for evidence in self.evidence
+        ]
+
+        if len(evidence_ids) != len(
+            set(evidence_ids)
+        ):
+            raise ValueError(
+                "RequirementAssessmentProposal "
+                "cannot cite duplicate "
+                "profile_fact_id values."
+            )
+
+        return self
+
+
 class RequirementAssessment(BaseModel):
     requirement_key: str = Field(
         min_length=1,
@@ -29,7 +72,9 @@ class RequirementAssessment(BaseModel):
 
     match_status: MatchStatus
 
-    evidence: list[ProfileEvidenceReference] = Field(
+    evidence: list[
+        ProfileEvidenceReference
+    ] = Field(
         default_factory=list,
     )
 
@@ -37,6 +82,8 @@ class RequirementAssessment(BaseModel):
         min_length=1,
         max_length=4000,
     )
+
+    gap_basis: GapBasis | None = None
 
     @model_validator(mode="after")
     def validate_evidence_consistency(

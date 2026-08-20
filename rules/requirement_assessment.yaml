@@ -1,0 +1,43 @@
+version: "0.1"
+
+statuses:
+  MATCH:
+    minimum_primary_evidence: 1
+    supporting_only_allowed: false
+
+  PARTIAL_MATCH:
+    minimum_primary_evidence: 1
+    supporting_only_allowed: false
+
+  GAP:
+    minimum_primary_evidence: 1
+    supporting_only_allowed: false
+    explicit_gap_basis_required: true
+
+  UNKNOWN:
+    minimum_primary_evidence: 0
+    supporting_only_allowed: false
+    evidence_allowed: false
+
+shortlist_rules:
+  cited_evidence_must_be_ranked: true
+  maximum_cited_evidence: 5
+
+gap_bases:
+  - "EXPLICIT_CONTRADICTION"
+  - "NUMERIC_SHORTFALL"
+  - "EXPLICIT_NON_COMPLIANCE"
+
+principles:
+  - "Evidence relevance never determines MATCH, PARTIAL_MATCH, GAP or UNKNOWN."
+  - "A lexical relevance score is never proof of requirement fit."
+  - "MATCH requires primary Career Master evidence that directly or equivalently supports the requirement."
+  - "PARTIAL_MATCH requires primary evidence of transferable or incomplete alignment and a material remaining gap."
+  - "GAP requires affirmative evidence of non-compliance, contradiction or measurable shortfall."
+  - "Absence of evidence never implies GAP."
+  - "Zero lexical overlap never implies GAP."
+  - "Supporting evidence may strengthen an assessment but cannot independently establish MATCH, PARTIAL_MATCH or GAP."
+  - "All cited evidence must come from the governed ranked shortlist."
+  - "UNKNOWN is the required outcome when evidence is insufficient or too ambiguous for a defensible conclusion."
+  - "The assessment layer may interpret evidence semantically, but it may never invent Career Master facts."
+  - "The assessment layer does not calculate the final Fit Score or APPLY/REVIEW/NO_APPLY recommendation."

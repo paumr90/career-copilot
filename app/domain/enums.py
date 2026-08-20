@@ -60,6 +60,12 @@ class MatchStatus(StrEnum):
     UNKNOWN = "UNKNOWN"
 
 
+class GapBasis(StrEnum):
+    EXPLICIT_CONTRADICTION = "EXPLICIT_CONTRADICTION"
+    NUMERIC_SHORTFALL = "NUMERIC_SHORTFALL"
+    EXPLICIT_NON_COMPLIANCE = "EXPLICIT_NON_COMPLIANCE"
+
+
 class FitRecommendation(StrEnum):
     APPLY = "APPLY"
     REVIEW = "REVIEW"
