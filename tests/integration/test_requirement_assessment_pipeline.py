@@ -10,6 +10,7 @@ from app.domain.enums import (
 )
 from app.infrastructure.db.session import engine
 from app.modules.audit.models import RuleEvaluation
+from app.modules.audit.service import RuleEvaluationService
 from app.modules.fit.pipeline import (
     RequirementAssessmentPipeline,
 )
@@ -123,9 +124,10 @@ def test_pipeline_prepares_governed_context() -> None:
         session.rollback()
 
 
-def test_pipeline_can_validate_and_score_proposal() -> None:
+def test_pipeline_can_validate_score_and_audit_proposal() -> None:
     opportunity_service = OpportunityService()
     pipeline = RequirementAssessmentPipeline()
+    audit_service = RuleEvaluationService()
 
     with Session(engine) as session:
         sources_before = session.scalar(
@@ -209,7 +211,8 @@ def test_pipeline_can_validate_and_score_proposal() -> None:
 
         (
             result,
-            evaluation,
+            fit_evaluation,
+            assessment_evaluation,
             assessments,
         ) = pipeline.evaluate_proposals_and_record(
             session=session,
@@ -234,12 +237,68 @@ def test_pipeline_can_validate_and_score_proposal() -> None:
         )
 
         assert (
-            evaluation.rule_set
+            assessment_evaluation.rule_set
+            == "requirement_assessment"
+        )
+
+        assert (
+            assessment_evaluation.ruleset_version
+            == "0.1"
+        )
+
+        assert (
+            assessment_evaluation.entity_id
+            == opportunity.opportunity_id
+        )
+
+        assert (
+            assessment_evaluation
+            .input_json["rules_snapshot"]
+            ["evidence_retrieval"]["version"]
+            == "0.1"
+        )
+
+        assert (
+            assessment_evaluation
+            .input_json["rules_snapshot"]
+            ["evidence_ranking"]["version"]
+            == "0.1"
+        )
+
+        assert (
+            assessment_evaluation
+            .input_json["rules_snapshot"]
+            ["requirement_assessment"]["version"]
+            == "0.1"
+        )
+
+        assert (
+            assessment_evaluation.input_hash
+            == audit_service.calculate_input_hash(
+                assessment_evaluation.input_json
+            )
+        )
+
+        assert (
+            assessment_evaluation.result_json
+            == {
+                "assessments": [
+                    assessment.model_dump(
+                        mode="json"
+                    )
+                    for assessment
+                    in assessments
+                ]
+            }
+        )
+
+        assert (
+            fit_evaluation.rule_set
             == "fit_scoring"
         )
 
         assert (
-            evaluation.entity_id
+            fit_evaluation.entity_id
             == opportunity.opportunity_id
         )
 
@@ -263,7 +322,7 @@ def test_pipeline_can_validate_and_score_proposal() -> None:
             select(func.count()).select_from(
                 RuleEvaluation
             )
-        ) == evaluations_before + 1
+        ) == evaluations_before + 2
 
         session.rollback()
 
@@ -291,7 +350,7 @@ def test_pipeline_can_validate_and_score_proposal() -> None:
         ) == evaluations_before
 
 
-def test_missing_proposal_is_rejected() -> None:
+def test_missing_proposal_is_rejected_without_audit() -> None:
     opportunity_service = OpportunityService()
     pipeline = RequirementAssessmentPipeline()
 
@@ -309,6 +368,12 @@ def test_missing_proposal_is_rejected() -> None:
             )
         )
 
+        evaluations_before = session.scalar(
+            select(func.count()).select_from(
+                RuleEvaluation
+            )
+        )
+
         with pytest.raises(
             ValueError,
             match=(
@@ -323,6 +388,12 @@ def test_missing_proposal_is_rejected() -> None:
                 ),
                 proposals=[],
             )
+
+        assert session.scalar(
+            select(func.count()).select_from(
+                RuleEvaluation
+            )
+        ) == evaluations_before
 
         session.rollback()
 

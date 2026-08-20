@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.domain.enums import SourceType
 from app.modules.audit.models import RuleEvaluation
+from app.modules.audit.service import RuleEvaluationService
 from app.modules.fit.assessment import (
     RequirementAssessmentValidator,
 )
@@ -44,6 +45,7 @@ class RequirementAssessmentPipeline:
         ranker: EvidenceRelevanceRanker | None = None,
         validator: RequirementAssessmentValidator | None = None,
         fit_service: FitEvaluationService | None = None,
+        audit_service: RuleEvaluationService | None = None,
     ) -> None:
         self.retriever = (
             retriever or CareerEvidenceRetriever()
@@ -60,6 +62,10 @@ class RequirementAssessmentPipeline:
 
         self.fit_service = (
             fit_service or FitEvaluationService()
+        )
+
+        self.audit_service = (
+            audit_service or RuleEvaluationService()
         )
 
     def _load_canonical_requirements(
@@ -193,6 +199,113 @@ class RequirementAssessmentPipeline:
                 f"Extra: {extra_keys}."
             )
 
+    def _build_assessment_audit_input(
+        self,
+        *,
+        opportunity_id: uuid.UUID,
+        contexts: list[
+            PreparedRequirementAssessmentContext
+        ],
+        proposals: list[
+            RequirementAssessmentProposal
+        ],
+    ) -> dict:
+        context_payloads = []
+
+        for context in contexts:
+            requirement = context.requirement
+            ranking = context.ranking_result
+
+            context_payloads.append(
+                {
+                    "requirement": {
+                        "requirement_key": (
+                            requirement.requirement_key
+                        ),
+                        "description": (
+                            requirement.description
+                        ),
+                        "priority": requirement.priority,
+                        "category": requirement.category,
+                        "blocking": requirement.blocking,
+                        "evidence_text": (
+                            requirement.evidence_text
+                        ),
+                    },
+                    "ranking": {
+                        "requirement_key": (
+                            ranking.requirement_key
+                        ),
+                        "requirement_category": (
+                            ranking.requirement_category.value
+                        ),
+                        "retrieval_rule_version": (
+                            ranking.retrieval_rule_version
+                        ),
+                        "ranking_rule_version": (
+                            ranking.ranking_rule_version
+                        ),
+                        "ranking_method": (
+                            ranking.ranking_method
+                        ),
+                        "total_candidate_count": (
+                            ranking.total_candidate_count
+                        ),
+                        "used_fallback": (
+                            ranking.used_fallback
+                        ),
+                        "ranked_candidates": [
+                            {
+                                "profile_fact_id": str(
+                                    ranked.candidate
+                                    .profile_fact_id
+                                ),
+                                "fact_type": (
+                                    ranked.candidate
+                                    .fact_type.value
+                                ),
+                                "tier": (
+                                    ranked.candidate
+                                    .tier.value
+                                ),
+                                "relevance_score": (
+                                    ranked.relevance_score
+                                ),
+                                "matched_terms": (
+                                    ranked.matched_terms
+                                ),
+                                "exact_phrase_matches": (
+                                    ranked
+                                    .exact_phrase_matches
+                                ),
+                            }
+                            for ranked
+                            in ranking.ranked_candidates
+                        ],
+                    },
+                }
+            )
+
+        return {
+            "opportunity_id": str(opportunity_id),
+            "contexts": context_payloads,
+            "proposals": [
+                proposal.model_dump(mode="json")
+                for proposal in proposals
+            ],
+            "rules_snapshot": {
+                "evidence_retrieval": (
+                    self.retriever.policy.config
+                ),
+                "evidence_ranking": (
+                    self.ranker.policy.config
+                ),
+                "requirement_assessment": (
+                    self.validator.policy.config
+                ),
+            },
+        }
+
     def evaluate_proposals_and_record(
         self,
         session: Session,
@@ -203,6 +316,7 @@ class RequirementAssessmentPipeline:
         ],
     ) -> tuple[
         FitResult,
+        RuleEvaluation,
         RuleEvaluation,
         list[RequirementAssessment],
     ]:
@@ -243,7 +357,37 @@ class RequirementAssessmentPipeline:
 
             assessments.append(assessment)
 
-        result, evaluation = (
+        assessment_input = (
+            self._build_assessment_audit_input(
+                opportunity_id=opportunity_id,
+                contexts=contexts,
+                proposals=proposals,
+            )
+        )
+
+        assessment_evaluation = (
+            self.audit_service.record(
+                session,
+                rule_set="requirement_assessment",
+                ruleset_version=(
+                    self.validator.policy.version
+                ),
+                input_payload=assessment_input,
+                result_json={
+                    "assessments": [
+                        assessment.model_dump(
+                            mode="json"
+                        )
+                        for assessment
+                        in assessments
+                    ]
+                },
+                entity_type="opportunity",
+                entity_id=opportunity_id,
+            )
+        )
+
+        result, fit_evaluation = (
             self.fit_service
             .evaluate_opportunity_and_record(
                 session=session,
@@ -254,6 +398,7 @@ class RequirementAssessmentPipeline:
 
         return (
             result,
-            evaluation,
+            fit_evaluation,
+            assessment_evaluation,
             assessments,
         )
