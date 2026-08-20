@@ -1,0 +1,79 @@
+version: "0.1"
+
+method: "deterministic_lexical_shortlisting"
+
+max_ranked_candidates: 8
+
+requirement_field_weights:
+  requirement_key: 1.0
+  description: 3.0
+  evidence_text: 2.0
+
+candidate_field_weights:
+  subject: 3.0
+  value_json: 1.0
+
+tier_weights:
+  PRIMARY: 1.0
+  SUPPORTING: 0.6
+
+exact_phrase_bonus: 1.5
+
+lexical_normalization:
+  lowercase: true
+  strip_accents: true
+  min_token_length: 3
+  stopwords:
+    - "and"
+    - "the"
+    - "with"
+    - "for"
+    - "from"
+    - "this"
+    - "that"
+    - "your"
+    - "our"
+    - "you"
+    - "are"
+    - "will"
+    - "have"
+    - "has"
+    - "experience"
+    - "required"
+    - "preferred"
+    - "de"
+    - "del"
+    - "la"
+    - "el"
+    - "los"
+    - "las"
+    - "con"
+    - "para"
+    - "por"
+    - "una"
+    - "uno"
+    - "en"
+    - "que"
+    - "amb"
+    - "per"
+    - "una"
+    - "uns"
+    - "les"
+    - "els"
+
+fallback:
+  enabled: true
+  max_candidates: 5
+  prefer_primary: true
+
+principles:
+  - "Ranking only prioritizes candidate evidence; it never decides requirement fit."
+  - "Only candidates previously approved by governed evidence retrieval may be ranked."
+  - "Keyword or phrase overlap is a relevance signal, never proof of MATCH."
+  - "PRIMARY evidence receives higher ranking weight than SUPPORTING context."
+  - "A SUPPORTING fact may still rank highly when it is strongly related to the requirement."
+  - "Zero lexical overlap does not prove that evidence is irrelevant."
+  - "If lexical ranking finds no useful overlap, a deterministic fallback preserves candidate evidence for later assessment."
+  - "Absence of ranked evidence never implies GAP."
+  - "Semantic equivalence, synonyms and transferable experience must be handled by the later assessment layer."
+  - "Ranking method and rule version must be carried forward for auditability."

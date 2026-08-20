@@ -53,8 +53,7 @@ class RequirementAssessment(BaseModel):
             )
 
         if (
-            self.match_status
-            == MatchStatus.UNKNOWN
+            self.match_status == MatchStatus.UNKNOWN
             and self.evidence
         ):
             raise ValueError(
@@ -171,3 +170,46 @@ class EvidenceCandidateSet(BaseModel):
     ] = Field(
         default_factory=list,
     )
+
+
+class RankedEvidenceCandidate(BaseModel):
+    candidate: CareerEvidenceCandidate
+
+    relevance_score: float = Field(
+        ge=0.0,
+    )
+
+    matched_terms: list[str] = Field(
+        default_factory=list,
+    )
+
+    exact_phrase_matches: list[str] = Field(
+        default_factory=list,
+    )
+
+
+class EvidenceRankingResult(BaseModel):
+    requirement_key: str = Field(
+        min_length=1,
+        max_length=150,
+    )
+
+    requirement_category: RequirementCategory
+
+    retrieval_rule_version: str
+
+    ranking_rule_version: str
+
+    ranking_method: str
+
+    total_candidate_count: int = Field(
+        ge=0,
+    )
+
+    ranked_candidates: list[
+        RankedEvidenceCandidate
+    ] = Field(
+        default_factory=list,
+    )
+
+    used_fallback: bool = False
