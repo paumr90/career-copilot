@@ -1,0 +1,23 @@
+[
+  {
+    "fact_type": "employment",
+    "subject": "Example Company",
+    "value": {
+      "role": "Project Manager",
+      "sector": "Example Sector"
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": "2024-01-01",
+    "valid_to": null
+  },
+  {
+    "fact_type": "skill",
+    "subject": "project_management",
+    "value": {
+      "level": "EXPERIENCE"
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  }
+]

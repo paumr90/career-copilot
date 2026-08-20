@@ -13,6 +13,9 @@ __pycache__/
 .env.*
 !.env.example
 
+# Private Career Master seeds
+seeds/career_master/*.local.json
+
 # Test and tooling cache
 .pytest_cache/
 .mypy_cache/
