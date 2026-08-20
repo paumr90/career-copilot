@@ -42,6 +42,11 @@ class RuleEvaluation(Base):
         nullable=False,
     )
 
+    input_json: Mapped[dict] = mapped_column(
+        JSONB,
+        nullable=False,
+    )
+
     result_json: Mapped[dict] = mapped_column(
         JSONB,
         nullable=False,

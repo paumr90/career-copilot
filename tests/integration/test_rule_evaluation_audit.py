@@ -1,8 +1,12 @@
 from sqlalchemy.orm import Session
 
-from app.domain.rules.source_authority import SourceAuthorityPolicy
+from app.domain.rules.source_authority import (
+    SourceAuthorityPolicy,
+)
 from app.infrastructure.db.session import engine
-from app.modules.audit.service import RuleEvaluationService
+from app.modules.audit.service import (
+    RuleEvaluationService,
+)
 
 
 def test_source_authority_decision_can_be_audited() -> None:
@@ -46,8 +50,20 @@ def test_source_authority_decision_can_be_audited() -> None:
         assert evaluation.evaluation_id is not None
         assert evaluation.rule_set == "source_authority"
         assert evaluation.ruleset_version == "0.1"
-        assert evaluation.entity_type == "professional_profile"
+        assert (
+            evaluation.entity_type
+            == "professional_profile"
+        )
+
         assert len(evaluation.input_hash) == 64
+
+        assert evaluation.input_json == input_payload
+
+        assert evaluation.input_hash == (
+            audit_service.calculate_input_hash(
+                evaluation.input_json
+            )
+        )
 
         assert evaluation.result_json == {
             "winner": "PROFILE",

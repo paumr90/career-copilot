@@ -10,7 +10,9 @@ from app.modules.audit.models import RuleEvaluation
 
 class RuleEvaluationService:
     @staticmethod
-    def calculate_input_hash(input_payload: dict[str, Any]) -> str:
+    def calculate_input_hash(
+        input_payload: dict[str, Any],
+    ) -> str:
         canonical_input = json.dumps(
             input_payload,
             sort_keys=True,
@@ -39,7 +41,10 @@ class RuleEvaluationService:
             ruleset_version=ruleset_version,
             entity_type=entity_type,
             entity_id=entity_id,
-            input_hash=self.calculate_input_hash(input_payload),
+            input_hash=self.calculate_input_hash(
+                input_payload
+            ),
+            input_json=input_payload,
             result_json=result_json,
         )
 
