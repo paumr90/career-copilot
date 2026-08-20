@@ -1,0 +1,259 @@
+import uuid
+from dataclasses import dataclass
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.domain.enums import SourceType
+from app.modules.audit.models import RuleEvaluation
+from app.modules.fit.assessment import (
+    RequirementAssessmentValidator,
+)
+from app.modules.fit.ranking import (
+    EvidenceRelevanceRanker,
+)
+from app.modules.fit.retrieval import (
+    CareerEvidenceRetriever,
+)
+from app.modules.fit.schemas import (
+    EvidenceRankingResult,
+    FitResult,
+    RequirementAssessment,
+    RequirementAssessmentProposal,
+)
+from app.modules.fit.service import (
+    FitEvaluationService,
+)
+from app.modules.governance.models import Source
+from app.modules.opportunities.models import (
+    JobRequirement,
+    Opportunity,
+)
+
+
+@dataclass(frozen=True)
+class PreparedRequirementAssessmentContext:
+    requirement: JobRequirement
+    ranking_result: EvidenceRankingResult
+
+
+class RequirementAssessmentPipeline:
+    def __init__(
+        self,
+        retriever: CareerEvidenceRetriever | None = None,
+        ranker: EvidenceRelevanceRanker | None = None,
+        validator: RequirementAssessmentValidator | None = None,
+        fit_service: FitEvaluationService | None = None,
+    ) -> None:
+        self.retriever = (
+            retriever or CareerEvidenceRetriever()
+        )
+
+        self.ranker = (
+            ranker or EvidenceRelevanceRanker()
+        )
+
+        self.validator = (
+            validator
+            or RequirementAssessmentValidator()
+        )
+
+        self.fit_service = (
+            fit_service or FitEvaluationService()
+        )
+
+    def _load_canonical_requirements(
+        self,
+        session: Session,
+        opportunity_id: uuid.UUID,
+    ) -> list[JobRequirement]:
+        opportunity = session.scalar(
+            select(Opportunity)
+            .join(
+                Source,
+                Opportunity.jd_source_id
+                == Source.source_id,
+            )
+            .where(
+                Opportunity.opportunity_id
+                == opportunity_id,
+                Source.source_type
+                == SourceType.JD.value,
+                Source.authority_level
+                == "CANONICAL_JD",
+                Source.immutable.is_(True),
+            )
+        )
+
+        if opportunity is None:
+            raise ValueError(
+                "Requirement assessment requires "
+                "an existing Opportunity backed by "
+                "an immutable canonical JD Source."
+            )
+
+        return list(
+            session.scalars(
+                select(JobRequirement)
+                .where(
+                    JobRequirement.opportunity_id
+                    == opportunity_id
+                )
+                .order_by(
+                    JobRequirement.requirement_key
+                )
+            ).all()
+        )
+
+    def prepare_context(
+        self,
+        session: Session,
+        *,
+        opportunity_id: uuid.UUID,
+    ) -> list[
+        PreparedRequirementAssessmentContext
+    ]:
+        requirements = (
+            self._load_canonical_requirements(
+                session=session,
+                opportunity_id=opportunity_id,
+            )
+        )
+
+        contexts: list[
+            PreparedRequirementAssessmentContext
+        ] = []
+
+        for requirement in requirements:
+            candidate_set = (
+                self.retriever.retrieve_for_requirement(
+                    session=session,
+                    requirement=requirement,
+                )
+            )
+
+            ranking_result = self.ranker.rank(
+                requirement=requirement,
+                candidate_set=candidate_set,
+            )
+
+            contexts.append(
+                PreparedRequirementAssessmentContext(
+                    requirement=requirement,
+                    ranking_result=ranking_result,
+                )
+            )
+
+        return contexts
+
+    def _validate_proposal_keys(
+        self,
+        *,
+        contexts: list[
+            PreparedRequirementAssessmentContext
+        ],
+        proposals: list[
+            RequirementAssessmentProposal
+        ],
+    ) -> None:
+        proposal_keys = [
+            proposal.requirement_key
+            for proposal in proposals
+        ]
+
+        if len(proposal_keys) != len(
+            set(proposal_keys)
+        ):
+            raise ValueError(
+                "Duplicate requirement assessment "
+                "proposals are not allowed."
+            )
+
+        canonical_keys = {
+            context.requirement.requirement_key
+            for context in contexts
+        }
+
+        provided_keys = set(proposal_keys)
+
+        if canonical_keys != provided_keys:
+            missing_keys = sorted(
+                canonical_keys - provided_keys
+            )
+
+            extra_keys = sorted(
+                provided_keys - canonical_keys
+            )
+
+            raise ValueError(
+                "Assessment proposal keys must "
+                "exactly match the canonical "
+                "JobRequirements. "
+                f"Missing: {missing_keys}. "
+                f"Extra: {extra_keys}."
+            )
+
+    def evaluate_proposals_and_record(
+        self,
+        session: Session,
+        *,
+        opportunity_id: uuid.UUID,
+        proposals: list[
+            RequirementAssessmentProposal
+        ],
+    ) -> tuple[
+        FitResult,
+        RuleEvaluation,
+        list[RequirementAssessment],
+    ]:
+        contexts = self.prepare_context(
+            session=session,
+            opportunity_id=opportunity_id,
+        )
+
+        self._validate_proposal_keys(
+            contexts=contexts,
+            proposals=proposals,
+        )
+
+        proposal_by_key = {
+            proposal.requirement_key: proposal
+            for proposal in proposals
+        }
+
+        assessments: list[
+            RequirementAssessment
+        ] = []
+
+        for context in contexts:
+            requirement_key = (
+                context.requirement.requirement_key
+            )
+
+            proposal = proposal_by_key[
+                requirement_key
+            ]
+
+            assessment = self.validator.validate(
+                proposal=proposal,
+                ranking_result=(
+                    context.ranking_result
+                ),
+            )
+
+            assessments.append(assessment)
+
+        result, evaluation = (
+            self.fit_service
+            .evaluate_opportunity_and_record(
+                session=session,
+                opportunity_id=opportunity_id,
+                assessments=assessments,
+            )
+        )
+
+        return (
+            result,
+            evaluation,
+            assessments,
+        )
