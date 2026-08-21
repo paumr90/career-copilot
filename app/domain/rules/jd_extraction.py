@@ -8,7 +8,7 @@ from app.domain.enums import (
     RequirementPriority,
 )
 from app.modules.opportunities.schemas import (
-    JobDescriptionInput,
+    JDExtractionProposal,
     JobRequirementInput,
 )
 
@@ -71,10 +71,10 @@ class JDExtractionPolicy:
 
         if self.config.get(
             "output_schema"
-        ) != JobDescriptionInput.__name__:
+        ) != JDExtractionProposal.__name__:
             raise ValueError(
                 "JD extraction output_schema "
-                "must match JobDescriptionInput."
+                "must match JDExtractionProposal."
             )
 
         self._validate_requirement_contract()

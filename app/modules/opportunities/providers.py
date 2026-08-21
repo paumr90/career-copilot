@@ -5,7 +5,7 @@ from typing import (
 
 from app.modules.opportunities.schemas import (
     JDExtractionProposal,
-    RawJobDescriptionInput,
+    JDExtractionRequest,
 )
 
 
@@ -22,7 +22,7 @@ class JDExtractionProvider(Protocol):
     def extract(
         self,
         *,
-        raw_job: RawJobDescriptionInput,
+        request: JDExtractionRequest,
     ) -> JDExtractionProposal:
         ...
 
@@ -58,9 +58,9 @@ class StaticJDExtractionProvider:
     def extract(
         self,
         *,
-        raw_job: RawJobDescriptionInput,
+        request: JDExtractionRequest,
     ) -> JDExtractionProposal:
-        _ = raw_job
+        _ = request
 
         return self._proposal.model_copy(
             deep=True

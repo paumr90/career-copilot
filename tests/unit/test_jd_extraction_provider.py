@@ -3,12 +3,16 @@ import pytest
 from app.modules.opportunities.extraction import (
     JDExtractionValidator,
 )
+from app.modules.opportunities.extraction_request import (
+    JDExtractionRequestBuilder,
+)
 from app.modules.opportunities.providers import (
     JDExtractionProvider,
     StaticJDExtractionProvider,
 )
 from app.modules.opportunities.schemas import (
     JDExtractionProposal,
+    JDExtractionRequest,
     JobRequirementInput,
     RawJobDescriptionInput,
 )
@@ -31,6 +35,14 @@ def build_raw_job() -> RawJobDescriptionInput:
             "https://example.com/jobs/"
             "program-manager"
         ),
+    )
+
+
+def build_request() -> JDExtractionRequest:
+    builder = JDExtractionRequestBuilder()
+
+    return builder.build(
+        raw_job=build_raw_job()
     )
 
 
@@ -82,7 +94,7 @@ def test_static_provider_returns_deep_copy() -> None:
     )
 
     result = provider.extract(
-        raw_job=build_raw_job()
+        request=build_request()
     )
 
     assert result == proposal
@@ -94,26 +106,44 @@ def test_static_provider_returns_deep_copy() -> None:
     )
 
 
-def test_static_provider_does_not_modify_raw_job() -> None:
+def test_static_provider_does_not_modify_request() -> None:
     provider = StaticJDExtractionProvider(
         proposal=build_valid_proposal()
     )
 
-    raw_job = build_raw_job()
+    request = build_request()
 
-    before = raw_job.model_dump(
+    before = request.model_dump(
         mode="json"
     )
 
     provider.extract(
-        raw_job=raw_job
+        request=request
     )
 
-    after = raw_job.model_dump(
+    after = request.model_dump(
         mode="json"
     )
 
     assert after == before
+
+
+def test_provider_request_has_no_source_url() -> None:
+    provider = StaticJDExtractionProvider(
+        proposal=build_valid_proposal()
+    )
+
+    request = build_request()
+
+    payload = request.model_dump(
+        mode="json"
+    )
+
+    assert "source_url" not in payload
+
+    provider.extract(
+        request=request
+    )
 
 
 def test_provider_output_remains_untrusted() -> None:
@@ -146,8 +176,15 @@ def test_provider_output_remains_untrusted() -> None:
 
     raw_job = build_raw_job()
 
+    request = (
+        JDExtractionRequestBuilder()
+        .build(
+            raw_job=raw_job
+        )
+    )
+
     proposal = provider.extract(
-        raw_job=raw_job
+        request=request
     )
 
     assert (

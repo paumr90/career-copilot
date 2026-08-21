@@ -275,6 +275,28 @@ def test_valid_provider_output_creates_and_audits_canonical_opportunity() -> Non
             == source.snapshot_hash
         )
 
+        request_audit = (
+            extraction_evaluation
+            .input_json["extraction_request"]
+        )
+
+        assert request_audit == {
+            "extraction_rule_version": "0.1",
+            "company": raw_job.company,
+            "role_title": raw_job.role_title,
+            "location": raw_job.location,
+        }
+
+        assert (
+            "raw_text"
+            not in request_audit
+        )
+
+        assert (
+            "source_url"
+            not in request_audit
+        )
+
         assert (
             extraction_evaluation
             .input_json["provider_origin"]

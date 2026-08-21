@@ -46,7 +46,7 @@ def test_default_policy_matches_domain_contract() -> None:
     )
 
     assert policy.output_schema == (
-        "JobDescriptionInput"
+        "JDExtractionProposal"
     )
 
     assert policy.allowed_categories == set(
@@ -77,23 +77,40 @@ def test_default_policy_matches_domain_contract() -> None:
     )
 
 
-def test_missing_priority_rule_is_rejected(
+def test_wrong_output_schema_is_rejected(
     tmp_path: Path,
 ) -> None:
     base_policy = JDExtractionPolicy()
+    config = deepcopy(base_policy.config)
 
-    config = deepcopy(
-        base_policy.config
-    )
-
-    config["priority_rules"].pop(
-        "SECONDARY"
+    config["output_schema"] = (
+        "JobDescriptionInput"
     )
 
     config_path = write_config(
         tmp_path,
         config,
     )
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            "JD extraction output_schema "
+            "must match JDExtractionProposal"
+        ),
+    ):
+        JDExtractionPolicy(
+            config_path=config_path
+        )
+
+
+def test_missing_priority_rule_is_rejected(
+    tmp_path: Path,
+) -> None:
+    base_policy = JDExtractionPolicy()
+    config = deepcopy(base_policy.config)
+    config["priority_rules"].pop("SECONDARY")
+    config_path = write_config(tmp_path, config)
 
     with pytest.raises(
         ValueError,
@@ -102,32 +119,20 @@ def test_missing_priority_rule_is_rejected(
             "RequirementPriority exactly"
         ),
     ):
-        JDExtractionPolicy(
-            config_path=config_path
-        )
+        JDExtractionPolicy(config_path=config_path)
 
 
 def test_unknown_priority_rule_is_rejected(
     tmp_path: Path,
 ) -> None:
     base_policy = JDExtractionPolicy()
-
-    config = deepcopy(
-        base_policy.config
-    )
-
-    config["priority_rules"][
-        "MANDATORY_PLUS"
-    ] = {
+    config = deepcopy(base_policy.config)
+    config["priority_rules"]["MANDATORY_PLUS"] = {
         "allowed_when": [
             "Invalid test priority."
         ]
     }
-
-    config_path = write_config(
-        tmp_path,
-        config,
-    )
+    config_path = write_config(tmp_path, config)
 
     with pytest.raises(
         ValueError,
@@ -136,28 +141,18 @@ def test_unknown_priority_rule_is_rejected(
             "unknown RequirementPriority"
         ),
     ):
-        JDExtractionPolicy(
-            config_path=config_path
-        )
+        JDExtractionPolicy(config_path=config_path)
 
 
 def test_unknown_category_is_rejected(
     tmp_path: Path,
 ) -> None:
     base_policy = JDExtractionPolicy()
-
-    config = deepcopy(
-        base_policy.config
-    )
-
+    config = deepcopy(base_policy.config)
     config["categories"]["allowed"].append(
         "PERSONALITY_SCORE"
     )
-
-    config_path = write_config(
-        tmp_path,
-        config,
-    )
+    config_path = write_config(tmp_path, config)
 
     with pytest.raises(
         ValueError,
@@ -166,28 +161,18 @@ def test_unknown_category_is_rejected(
             "match RequirementCategory"
         ),
     ):
-        JDExtractionPolicy(
-            config_path=config_path
-        )
+        JDExtractionPolicy(config_path=config_path)
 
 
 def test_uncertain_priority_must_be_secondary(
     tmp_path: Path,
 ) -> None:
     base_policy = JDExtractionPolicy()
-
-    config = deepcopy(
-        base_policy.config
-    )
-
+    config = deepcopy(base_policy.config)
     config["ambiguity_rules"][
         "uncertain_priority"
     ] = "MUST_HAVE"
-
-    config_path = write_config(
-        tmp_path,
-        config,
-    )
+    config_path = write_config(tmp_path, config)
 
     with pytest.raises(
         ValueError,
@@ -196,28 +181,16 @@ def test_uncertain_priority_must_be_secondary(
             "be SECONDARY"
         ),
     ):
-        JDExtractionPolicy(
-            config_path=config_path
-        )
+        JDExtractionPolicy(config_path=config_path)
 
 
 def test_blocking_default_must_be_false(
     tmp_path: Path,
 ) -> None:
     base_policy = JDExtractionPolicy()
-
-    config = deepcopy(
-        base_policy.config
-    )
-
-    config["blocking_rules"][
-        "default"
-    ] = True
-
-    config_path = write_config(
-        tmp_path,
-        config,
-    )
+    config = deepcopy(base_policy.config)
+    config["blocking_rules"]["default"] = True
+    config_path = write_config(tmp_path, config)
 
     with pytest.raises(
         ValueError,
@@ -226,20 +199,14 @@ def test_blocking_default_must_be_false(
             "must be false"
         ),
     ):
-        JDExtractionPolicy(
-            config_path=config_path
-        )
+        JDExtractionPolicy(config_path=config_path)
 
 
 def test_requirement_fields_must_match_schema(
     tmp_path: Path,
 ) -> None:
     base_policy = JDExtractionPolicy()
-
-    config = deepcopy(
-        base_policy.config
-    )
-
+    config = deepcopy(base_policy.config)
     config[
         "requirement_contract"
     ][
@@ -247,11 +214,7 @@ def test_requirement_fields_must_match_schema(
     ].remove(
         "evidence_text"
     )
-
-    config_path = write_config(
-        tmp_path,
-        config,
-    )
+    config_path = write_config(tmp_path, config)
 
     with pytest.raises(
         ValueError,
@@ -260,20 +223,14 @@ def test_requirement_fields_must_match_schema(
             "do not match JobRequirementInput"
         ),
     ):
-        JDExtractionPolicy(
-            config_path=config_path
-        )
+        JDExtractionPolicy(config_path=config_path)
 
 
 def test_verbatim_evidence_rule_cannot_be_disabled(
     tmp_path: Path,
 ) -> None:
     base_policy = JDExtractionPolicy()
-
-    config = deepcopy(
-        base_policy.config
-    )
-
+    config = deepcopy(base_policy.config)
     config[
         "requirement_contract"
     ][
@@ -281,11 +238,7 @@ def test_verbatim_evidence_rule_cannot_be_disabled(
     ][
         "must_be_verbatim_from_jd"
     ] = False
-
-    config_path = write_config(
-        tmp_path,
-        config,
-    )
+    config_path = write_config(tmp_path, config)
 
     with pytest.raises(
         ValueError,
@@ -295,6 +248,4 @@ def test_verbatim_evidence_rule_cannot_be_disabled(
             "must be true"
         ),
     ):
-        JDExtractionPolicy(
-            config_path=config_path
-        )
+        JDExtractionPolicy(config_path=config_path)

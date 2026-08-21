@@ -68,6 +68,36 @@ class RawJobDescriptionInput(BaseModel):
     )
 
 
+class JDExtractionRequest(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+
+    extraction_rule_version: str = Field(
+        min_length=1,
+        max_length=50,
+    )
+
+    company: str = Field(
+        min_length=1,
+        max_length=255,
+    )
+
+    role_title: str = Field(
+        min_length=1,
+        max_length=255,
+    )
+
+    location: str | None = Field(
+        default=None,
+        max_length=255,
+    )
+
+    raw_text: str = Field(
+        min_length=1,
+    )
+
+
 class JDExtractionProposal(BaseModel):
     model_config = ConfigDict(
         extra="forbid",

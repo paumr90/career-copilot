@@ -12,6 +12,9 @@ from app.modules.governance.models import Source
 from app.modules.opportunities.extraction import (
     JDExtractionValidator,
 )
+from app.modules.opportunities.extraction_request import (
+    JDExtractionRequestBuilder,
+)
 from app.modules.opportunities.models import (
     JobRequirement,
     Opportunity,
@@ -21,6 +24,7 @@ from app.modules.opportunities.providers import (
 )
 from app.modules.opportunities.schemas import (
     JDExtractionProposal,
+    JDExtractionRequest,
     JobDescriptionInput,
     RawJobDescriptionInput,
 )
@@ -34,12 +38,22 @@ class JDIntakeService:
         self,
         *,
         validator: JDExtractionValidator | None = None,
+        request_builder: (
+            JDExtractionRequestBuilder | None
+        ) = None,
         opportunity_service: OpportunityService | None = None,
         audit_service: RuleEvaluationService | None = None,
     ) -> None:
         self.validator = (
             validator
             or JDExtractionValidator()
+        )
+
+        self.request_builder = (
+            request_builder
+            or JDExtractionRequestBuilder(
+                policy=self.validator.policy
+            )
         )
 
         self.opportunity_service = (
@@ -58,6 +72,7 @@ class JDIntakeService:
         source: Source,
         opportunity: Opportunity,
         raw_job: RawJobDescriptionInput,
+        request: JDExtractionRequest,
         provider: JDExtractionProvider,
         proposal: JDExtractionProposal,
     ) -> dict:
@@ -74,6 +89,14 @@ class JDIntakeService:
             "source_uri": (
                 raw_job.source_url
             ),
+            "extraction_request": {
+                "extraction_rule_version": (
+                    request.extraction_rule_version
+                ),
+                "company": request.company,
+                "role_title": request.role_title,
+                "location": request.location,
+            },
             "provider_origin": {
                 "provider_name": (
                     provider.provider_name
@@ -108,8 +131,12 @@ class JDIntakeService:
         JobDescriptionInput,
         RuleEvaluation,
     ]:
-        proposal = provider.extract(
+        request = self.request_builder.build(
             raw_job=raw_job
+        )
+
+        proposal = provider.extract(
+            request=request
         )
 
         validated_job_description = (
@@ -140,6 +167,7 @@ class JDIntakeService:
             source=source,
             opportunity=opportunity,
             raw_job=raw_job,
+            request=request,
             provider=provider,
             proposal=proposal,
         )

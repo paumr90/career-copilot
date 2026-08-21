@@ -2,7 +2,7 @@ version: "0.1"
 
 role: "job_description_requirement_extractor"
 
-output_schema: "JobDescriptionInput"
+output_schema: "JDExtractionProposal"
 
 requirement_contract:
   required_fields:
