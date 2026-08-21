@@ -5,6 +5,7 @@ from typing import (
 
 from app.modules.opportunities.schemas import (
     JDExtractionProposal,
+    JDExtractionProviderResult,
     JDExtractionRequest,
 )
 
@@ -24,6 +25,16 @@ class JDExtractionProvider(Protocol):
         *,
         request: JDExtractionRequest,
     ) -> JDExtractionProposal:
+        ...
+
+
+@runtime_checkable
+class TelemetryJDExtractionProvider(Protocol):
+    def extract_with_telemetry(
+        self,
+        *,
+        request: JDExtractionRequest,
+    ) -> JDExtractionProviderResult:
         ...
 
 

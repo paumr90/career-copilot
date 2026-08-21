@@ -130,6 +130,84 @@ class JDExtractionProposal(BaseModel):
         return self
 
 
+class JDExtractionTelemetry(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+
+    provider_name: str = Field(
+        min_length=1,
+        max_length=100,
+    )
+
+    provider_version: str = Field(
+        min_length=1,
+        max_length=50,
+    )
+
+    model_name: str | None = Field(
+        default=None,
+        max_length=255,
+    )
+
+    response_id: str | None = Field(
+        default=None,
+        max_length=255,
+    )
+
+    input_tokens: int | None = Field(
+        default=None,
+        ge=0,
+    )
+
+    output_tokens: int | None = Field(
+        default=None,
+        ge=0,
+    )
+
+    total_tokens: int | None = Field(
+        default=None,
+        ge=0,
+    )
+
+    latency_ms: float | None = Field(
+        default=None,
+        ge=0,
+    )
+
+    @model_validator(mode="after")
+    def validate_token_total(
+        self,
+    ) -> "JDExtractionTelemetry":
+        if (
+            self.input_tokens is not None
+            and self.output_tokens is not None
+            and self.total_tokens is not None
+            and self.total_tokens
+            != (
+                self.input_tokens
+                + self.output_tokens
+            )
+        ):
+            raise ValueError(
+                "total_tokens must equal "
+                "input_tokens + output_tokens "
+                "when all token counts are present."
+            )
+
+        return self
+
+
+class JDExtractionProviderResult(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+
+    proposal: JDExtractionProposal
+
+    telemetry: JDExtractionTelemetry
+
+
 class JobDescriptionInput(BaseModel):
     model_config = ConfigDict(
         extra="forbid",

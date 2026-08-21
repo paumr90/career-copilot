@@ -21,10 +21,13 @@ from app.modules.opportunities.models import (
 )
 from app.modules.opportunities.providers import (
     JDExtractionProvider,
+    TelemetryJDExtractionProvider,
 )
 from app.modules.opportunities.schemas import (
     JDExtractionProposal,
+    JDExtractionProviderResult,
     JDExtractionRequest,
+    JDExtractionTelemetry,
     JobDescriptionInput,
     RawJobDescriptionInput,
 )
@@ -64,6 +67,64 @@ class JDIntakeService:
         self.audit_service = (
             audit_service
             or RuleEvaluationService()
+        )
+
+    def _extract_with_telemetry(
+        self,
+        *,
+        provider: JDExtractionProvider,
+        request: JDExtractionRequest,
+    ) -> JDExtractionProviderResult:
+        if isinstance(
+            provider,
+            TelemetryJDExtractionProvider,
+        ):
+            result = (
+                provider.extract_with_telemetry(
+                    request=request
+                )
+            )
+
+            if (
+                result.telemetry.provider_name
+                != provider.provider_name
+            ):
+                raise ValueError(
+                    "JD extraction telemetry "
+                    "provider_name does not match "
+                    "the provider identity."
+                )
+
+            if (
+                result.telemetry.provider_version
+                != provider.provider_version
+            ):
+                raise ValueError(
+                    "JD extraction telemetry "
+                    "provider_version does not match "
+                    "the provider identity."
+                )
+
+            return result.model_copy(
+                deep=True
+            )
+
+        proposal = provider.extract(
+            request=request
+        )
+
+        return JDExtractionProviderResult(
+            proposal=proposal.model_copy(
+                deep=True
+            ),
+            telemetry=JDExtractionTelemetry(
+                provider_name=(
+                    provider.provider_name
+                ),
+                provider_version=(
+                    provider.provider_version
+                ),
+            ),
         )
 
     def _build_audit_input(
@@ -135,8 +196,15 @@ class JDIntakeService:
             raw_job=raw_job
         )
 
-        proposal = provider.extract(
-            request=request
+        provider_result = (
+            self._extract_with_telemetry(
+                provider=provider,
+                request=request,
+            )
+        )
+
+        proposal = (
+            provider_result.proposal
         )
 
         validated_job_description = (
@@ -192,6 +260,12 @@ class JDIntakeService:
                     "requirements_count": len(
                         validated_job_description
                         .requirements
+                    ),
+                    "provider_telemetry": (
+                        provider_result.telemetry
+                        .model_dump(
+                            mode="json"
+                        )
                     ),
                 },
                 entity_type="opportunity",

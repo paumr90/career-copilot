@@ -14,6 +14,7 @@ dependencies = [
     "alembic",
     "httpx",
     "PyYAML",
+    "openai",
 ]
 
 [project.optional-dependencies]
