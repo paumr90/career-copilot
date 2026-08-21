@@ -1,0 +1,146 @@
+version: "0.1"
+
+role: "job_description_requirement_extractor"
+
+output_schema: "JobDescriptionInput"
+
+requirement_contract:
+  required_fields:
+    - "requirement_key"
+    - "description"
+    - "priority"
+    - "category"
+    - "blocking"
+    - "evidence_text"
+
+  requirement_key:
+    format: "snake_case"
+    unique: true
+
+  evidence_text:
+    required: true
+    must_be_verbatim_from_jd: true
+    must_be_contiguous_substring: true
+    prefer_smallest_sufficient_fragment: true
+
+priority_rules:
+  MUST_HAVE:
+    allowed_when:
+      - "The JD explicitly uses mandatory language such as required, must, mandatory, minimum, essential or equivalent."
+      - "The JD clearly establishes the condition as an eligibility requirement."
+      - "The requirement is explicitly stated as necessary to perform or qualify for the role."
+
+  NICE_TO_HAVE:
+    allowed_when:
+      - "The JD explicitly uses language such as preferred, desirable, plus, bonus, advantage, ideally or equivalent."
+      - "The JD clearly presents the item as beneficial but not mandatory."
+
+  SECONDARY:
+    allowed_when:
+      - "The item is relevant to the role but the JD does not establish it as mandatory or preferred."
+      - "The item represents contextual, supporting or secondary expectations."
+      - "Priority cannot be established confidently from the JD."
+
+blocking_rules:
+  default: false
+
+  blocking_true_requires:
+    - "priority must be MUST_HAVE"
+    - "The JD must provide clear evidence that non-compliance would materially prevent eligibility or execution of the role."
+
+  principles:
+    - "Do not mark a requirement as blocking merely because it is important."
+    - "Do not infer blocking status from seniority, prominence or keyword frequency."
+    - "When blocking status is ambiguous, use false."
+
+categories:
+  allowed:
+    - "EXPERIENCE"
+    - "EDUCATION"
+    - "SKILL"
+    - "LANGUAGE"
+    - "INDUSTRY"
+    - "TECHNOLOGY"
+    - "RESPONSIBILITY"
+    - "LOCATION"
+    - "WORK_MODE"
+    - "COMPENSATION"
+    - "OTHER"
+
+  guidance:
+    EXPERIENCE:
+      - "Years, type or level of professional experience."
+
+    EDUCATION:
+      - "Degrees, academic qualifications or formal education."
+
+    SKILL:
+      - "Business, consulting, project management, analytical or other professional capabilities."
+
+    LANGUAGE:
+      - "Required or preferred languages and proficiency levels."
+
+    INDUSTRY:
+      - "Sector, market or domain experience."
+
+    TECHNOLOGY:
+      - "Specific technologies, platforms, software, data, AI or technical capabilities."
+
+    RESPONSIBILITY:
+      - "Ownership, leadership or responsibilities the candidate is expected to perform."
+
+    LOCATION:
+      - "Candidate location, geographic eligibility or relocation expectations."
+
+    WORK_MODE:
+      - "Remote, hybrid, office-presence or travel expectations."
+
+    COMPENSATION:
+      - "Salary or compensation conditions relevant to candidate-job fit."
+
+    OTHER:
+      - "Relevant requirements that do not defensibly belong to another category."
+
+extraction_rules:
+  - "Extract only requirements supported by the supplied Job Description."
+  - "Every extracted requirement must have verbatim evidence_text from the Job Description."
+  - "Do not create a requirement from general world knowledge about the company, role, industry or seniority."
+  - "Do not infer requirements from the candidate profile."
+  - "Do not modify a requirement based on whether the candidate appears to satisfy it."
+  - "Do not omit a requirement because it may reduce candidate fit."
+  - "Do not upgrade an ambiguous requirement to MUST_HAVE."
+  - "Do not upgrade a MUST_HAVE requirement to blocking without explicit justification."
+  - "Do not treat every responsibility or descriptive bullet as a candidate requirement."
+  - "Merge semantically duplicate requirements rather than creating duplicate requirement_key values."
+  - "Preserve numerical thresholds exactly when they are stated in the Job Description."
+  - "Preserve named technologies, certifications, languages and qualifications exactly enough to retain their meaning."
+  - "Location, work mode and compensation may be extracted when explicitly stated and relevant to candidate-job compatibility."
+
+ambiguity_rules:
+  uncertain_priority: "SECONDARY"
+  uncertain_blocking: false
+  uncertain_category: "OTHER"
+
+  principle:
+    - "Conservative classification is preferred over unsupported certainty."
+
+forbidden:
+  - "Invent a requirement that is absent from the Job Description."
+  - "Use Career Master information to influence extraction."
+  - "Use candidate fit to influence requirement priority."
+  - "Rewrite the Job Description to make a requirement easier or harder to satisfy."
+  - "Convert keyword frequency into requirement importance."
+  - "Assume that a common industry expectation is required when the Job Description does not state it."
+  - "Infer a numerical threshold that is not stated."
+  - "Infer a certification, degree, language or technology requirement that is not stated."
+  - "Return duplicate semantic requirements under different requirement_key values."
+  - "Calculate Fit Score."
+  - "Decide APPLY, REVIEW or NO_APPLY."
+
+principles:
+  - "The Job Description is the canonical source of truth for job requirements."
+  - "Extraction describes what the employer states; it does not judge candidate fit."
+  - "Evidence grounding is mandatory for every extracted requirement."
+  - "MUST_HAVE must be justified by the wording of the Job Description."
+  - "Blocking is stronger than MUST_HAVE and therefore requires stronger evidence."
+  - "Ambiguity must not be converted into unsupported certainty."
