@@ -58,7 +58,13 @@ def build_ranked_candidate(
             value_json={
                 "responsibilities": [
                     f"Responsibility {index}"
-                ]
+                ],
+                "clients": [
+                    f"Private client {index}"
+                ],
+                "internal_level": (
+                    f"Private internal level {index}"
+                ),
             },
             tier=tier,
         ),
@@ -316,4 +322,69 @@ def test_semantic_request_does_not_expose_ranking_only_fields() -> None:
             "relevance_score",
             "matched_terms",
         }
+    )
+
+
+def test_builder_minimizes_value_json_before_provider_boundary() -> None:
+    builder = SemanticAssessmentRequestBuilder()
+
+    requirement = build_requirement()
+
+    ranking = build_ranking_result(
+        candidate_count=1
+    )
+
+    request = builder.build(
+        requirement=requirement,
+        ranking_result=ranking,
+    )
+
+    value_json = (
+        request.ranked_evidence[0]
+        .value_json
+    )
+
+    assert value_json == {
+        "responsibilities": [
+            "Responsibility 0"
+        ]
+    }
+
+    assert "clients" not in value_json
+
+    assert (
+        "internal_level"
+        not in value_json
+    )
+
+
+def test_builder_projection_does_not_modify_ranking_result() -> None:
+    builder = SemanticAssessmentRequestBuilder()
+
+    requirement = build_requirement()
+
+    ranking = build_ranking_result(
+        candidate_count=1
+    )
+
+    builder.build(
+        requirement=requirement,
+        ranking_result=ranking,
+    )
+
+    original_value_json = (
+        ranking.ranked_candidates[0]
+        .candidate.value_json
+    )
+
+    assert (
+        original_value_json["clients"]
+        == ["Private client 0"]
+    )
+
+    assert (
+        original_value_json[
+            "internal_level"
+        ]
+        == "Private internal level 0"
     )

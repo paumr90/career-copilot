@@ -24,6 +24,7 @@ from app.modules.fit.schemas import (
     FitResult,
     RequirementAssessment,
     RequirementAssessmentProposal,
+    SemanticAssessmentRequest,
 )
 from app.modules.fit.semantic import (
     SemanticAssessmentRequestBuilder,
@@ -166,6 +167,47 @@ class RequirementAssessmentPipeline:
 
         return contexts
 
+    @staticmethod
+    def _validate_provider_proposal_against_request(
+        *,
+        request: SemanticAssessmentRequest,
+        proposal: RequirementAssessmentProposal,
+    ) -> None:
+        if (
+            proposal.requirement_key
+            != request.requirement.requirement_key
+        ):
+            raise ValueError(
+                "Provider assessment proposal "
+                "requirement_key must match the "
+                "semantic assessment request."
+            )
+
+        supplied_ids = {
+            evidence.profile_fact_id
+            for evidence
+            in request.ranked_evidence
+        }
+
+        cited_ids = {
+            evidence.profile_fact_id
+            for evidence
+            in proposal.evidence
+        }
+
+        unsupplied_ids = (
+            cited_ids - supplied_ids
+        )
+
+        if unsupplied_ids:
+            raise ValueError(
+                "Provider assessment evidence must "
+                "come from the exact semantic "
+                "assessment request evidence. "
+                "Unsupplied profile_fact_id values: "
+                f"{sorted(str(value) for value in unsupplied_ids)}"
+            )
+
     def propose_with_provider(
         self,
         session: Session,
@@ -196,6 +238,11 @@ class RequirementAssessmentPipeline:
 
             proposal = provider.propose(
                 request=request
+            )
+
+            self._validate_provider_proposal_against_request(
+                request=request,
+                proposal=proposal,
             )
 
             proposals.append(proposal)
@@ -362,6 +409,13 @@ class RequirementAssessmentPipeline:
                 .policy.config
             )
 
+            rules_snapshot[
+                "semantic_evidence_projection"
+            ] = (
+                self.semantic_request_builder
+                .projector.policy.config
+            )
+
         return {
             "opportunity_id": str(opportunity_id),
             "proposal_origin": resolved_origin,
@@ -502,6 +556,10 @@ class RequirementAssessmentPipeline:
             "semantic_rule_version": (
                 self.semantic_request_builder
                 .policy.version
+            ),
+            "projection_rule_version": (
+                self.semantic_request_builder
+                .projector.version
             ),
         }
 

@@ -5,6 +5,9 @@ from app.domain.enums import (
 from app.domain.rules.semantic_assessment import (
     SemanticAssessmentPolicy,
 )
+from app.modules.fit.projection import (
+    SemanticEvidenceProjector,
+)
 from app.modules.fit.schemas import (
     EvidenceRankingResult,
     SemanticAssessmentEvidence,
@@ -20,9 +23,15 @@ class SemanticAssessmentRequestBuilder:
     def __init__(
         self,
         policy: SemanticAssessmentPolicy | None = None,
+        projector: SemanticEvidenceProjector | None = None,
     ) -> None:
         self.policy = (
             policy or SemanticAssessmentPolicy()
+        )
+
+        self.projector = (
+            projector
+            or SemanticEvidenceProjector()
         )
 
     def build(
@@ -101,18 +110,24 @@ class SemanticAssessmentRequestBuilder:
             ]
         ]
 
-        return SemanticAssessmentRequest(
-            semantic_rule_version=(
-                self.policy.version
-            ),
-            retrieval_rule_version=(
-                ranking_result
-                .retrieval_rule_version
-            ),
-            ranking_rule_version=(
-                ranking_result
-                .ranking_rule_version
-            ),
-            requirement=semantic_requirement,
-            ranked_evidence=ranked_evidence,
+        unprojected_request = (
+            SemanticAssessmentRequest(
+                semantic_rule_version=(
+                    self.policy.version
+                ),
+                retrieval_rule_version=(
+                    ranking_result
+                    .retrieval_rule_version
+                ),
+                ranking_rule_version=(
+                    ranking_result
+                    .ranking_rule_version
+                ),
+                requirement=semantic_requirement,
+                ranked_evidence=ranked_evidence,
+            )
+        )
+
+        return self.projector.project_request(
+            request=unprojected_request
         )

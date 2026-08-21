@@ -1,0 +1,222 @@
+version: "0.1"
+
+principles:
+  - "Only fields necessary to assess the current requirement category may leave the local Career Master boundary."
+  - "Evidence retrieval decides which ProfileFacts are candidates; projection only minimizes their value_json payload."
+  - "Fields not explicitly allowlisted are excluded."
+  - "Projection never modifies the underlying canonical Career Master fact."
+  - "Projection never upgrades supporting evidence to primary evidence."
+  - "An empty projected value_json is allowed when subject and metadata still identify the evidence."
+  - "Data minimization must happen before any external semantic provider receives Career Master evidence."
+
+requirement_categories:
+
+  EXPERIENCE:
+
+    employment:
+      - role
+      - period
+      - area
+      - focus
+      - responsibilities
+      - projects
+      - knowledge
+      - scale
+      - project_budget_eur
+      - confirmed_result
+
+    project:
+      - period
+      - areas
+      - focus
+      - objective
+      - responsibilities
+      - activities
+      - duration_years
+      - budget_eur
+      - total_budget_eur
+      - planned_activities_count
+      - role_of_organisation
+      - business_baseline_revenue_eur_approx
+      - business_target_revenue_eur
+
+    achievement:
+      - context
+      - period_years_approx
+      - projects_approx
+      - concurrent_projects_min
+      - concurrent_projects_max
+      - project_budget_eur
+      - project_margin_min_percent
+
+    skill:
+      - areas
+      - level
+
+    professional_summary:
+      - summary
+
+  EDUCATION:
+
+    education:
+      - qualification
+      - period
+      - start_date
+      - status_as_of
+      - final_thesis
+      - final_thesis_focus
+      - thesis
+      - remaining_subject
+      - remaining_subject_due_date
+      - defense_date
+      - all_other_subjects_completed
+
+    certification:
+      - status
+
+  SKILL:
+
+    skill:
+      - areas
+      - level
+
+    employment:
+      - role
+      - area
+      - focus
+      - responsibilities
+      - projects
+      - knowledge
+
+    project:
+      - areas
+      - focus
+      - objective
+      - responsibilities
+      - activities
+
+    education:
+      - qualification
+      - final_thesis
+      - final_thesis_focus
+      - thesis
+
+  LANGUAGE:
+
+    language:
+      - proficiency
+
+  INDUSTRY:
+
+    employment:
+      - role
+      - area
+      - focus
+      - responsibilities
+      - projects
+      - knowledge
+
+    project:
+      - areas
+      - focus
+      - objective
+      - responsibilities
+      - activities
+
+    professional_summary:
+      - summary
+
+  TECHNOLOGY:
+
+    skill:
+      - areas
+      - level
+
+    employment:
+      - role
+      - focus
+      - responsibilities
+      - projects
+      - knowledge
+
+    project:
+      - areas
+      - focus
+      - objective
+      - responsibilities
+      - activities
+
+    education:
+      - qualification
+      - final_thesis
+      - final_thesis_focus
+      - thesis
+
+    certification:
+      - status
+
+  RESPONSIBILITY:
+
+    employment:
+      - role
+      - focus
+      - responsibilities
+      - projects
+      - scale
+      - project_budget_eur
+      - confirmed_result
+
+    project:
+      - responsibilities
+      - activities
+      - role_of_organisation
+      - planned_activities_count
+      - duration_years
+      - budget_eur
+      - total_budget_eur
+
+    achievement:
+      - context
+      - period_years_approx
+      - projects_approx
+      - concurrent_projects_min
+      - concurrent_projects_max
+      - project_budget_eur
+      - project_margin_min_percent
+
+    professional_summary:
+      - summary
+
+  LOCATION:
+
+    work_preference:
+      - preferred_location
+      - travel_acceptable
+
+  WORK_MODE:
+
+    work_preference:
+      - preferred_location
+      - preferred_office_days_per_week
+      - remote_acceptable
+      - travel_acceptable
+
+  COMPENSATION:
+
+    compensation_preference:
+      - minimum_fixed_salary_eur
+      - variable_compensation_expected
+
+  OTHER:
+
+    professional_summary:
+      - summary
+
+    positioning:
+      - statement
+      - differentiators
+
+    career_objective:
+      - objective
+      - positioning
+      - target_role_families
