@@ -208,14 +208,34 @@ class RequirementAssessmentPipeline:
                 f"{sorted(str(value) for value in unsupplied_ids)}"
             )
 
+    @staticmethod
+    def _validate_provider_telemetry_identity(
+        *,
+        provider: SemanticAssessmentProvider,
+        provider_name: str,
+        provider_version: str,
+    ) -> None:
+        if (
+            provider_name
+            != provider.provider_name
+            or provider_version
+            != provider.provider_version
+        ):
+            raise ValueError(
+                "Semantic assessment telemetry "
+                "provider identity must match the "
+                "active provider."
+            )
+
     def propose_with_provider(
         self,
         session: Session,
         *,
         opportunity_id: uuid.UUID,
         provider: SemanticAssessmentProvider,
-    ) -> list[
-        RequirementAssessmentProposal
+    ) -> tuple[
+        list[RequirementAssessmentProposal],
+        dict[str, dict],
     ]:
         contexts = self.prepare_context(
             session=session,
@@ -225,6 +245,11 @@ class RequirementAssessmentPipeline:
         proposals: list[
             RequirementAssessmentProposal
         ] = []
+
+        provider_telemetry: dict[
+            str,
+            dict,
+        ] = {}
 
         for context in contexts:
             request = (
@@ -236,9 +261,48 @@ class RequirementAssessmentPipeline:
                 )
             )
 
-            proposal = provider.propose(
-                request=request
+            propose_with_telemetry = getattr(
+                provider,
+                "propose_with_telemetry",
+                None,
             )
+
+            if callable(
+                propose_with_telemetry
+            ):
+                provider_result = (
+                    propose_with_telemetry(
+                        request=request
+                    )
+                )
+
+                proposal = (
+                    provider_result.proposal
+                )
+
+                telemetry = (
+                    provider_result.telemetry
+                )
+
+                self._validate_provider_telemetry_identity(
+                    provider=provider,
+                    provider_name=(
+                        telemetry.provider_name
+                    ),
+                    provider_version=(
+                        telemetry.provider_version
+                    ),
+                )
+
+                provider_telemetry[
+                    context.requirement.requirement_key
+                ] = telemetry.model_dump(
+                    mode="json"
+                )
+            else:
+                proposal = provider.propose(
+                    request=request
+                )
 
             self._validate_provider_proposal_against_request(
                 request=request,
@@ -247,7 +311,10 @@ class RequirementAssessmentPipeline:
 
             proposals.append(proposal)
 
-        return proposals
+        return (
+            proposals,
+            provider_telemetry,
+        )
 
     def _validate_proposal_keys(
         self,
@@ -307,6 +374,10 @@ class RequirementAssessmentPipeline:
             RequirementAssessmentProposal
         ],
         proposal_origin: dict | None = None,
+        provider_telemetry: dict[
+            str,
+            dict,
+        ] | None = None,
     ) -> dict:
         context_payloads = []
 
@@ -416,7 +487,7 @@ class RequirementAssessmentPipeline:
                 .projector.policy.config
             )
 
-        return {
+        audit_input = {
             "opportunity_id": str(opportunity_id),
             "proposal_origin": resolved_origin,
             "contexts": context_payloads,
@@ -427,6 +498,13 @@ class RequirementAssessmentPipeline:
             "rules_snapshot": rules_snapshot,
         }
 
+        if provider_telemetry:
+            audit_input[
+                "provider_telemetry"
+            ] = provider_telemetry
+
+        return audit_input
+
     def evaluate_proposals_and_record(
         self,
         session: Session,
@@ -436,6 +514,10 @@ class RequirementAssessmentPipeline:
             RequirementAssessmentProposal
         ],
         proposal_origin: dict | None = None,
+        provider_telemetry: dict[
+            str,
+            dict,
+        ] | None = None,
     ) -> tuple[
         FitResult,
         RuleEvaluation,
@@ -485,6 +567,7 @@ class RequirementAssessmentPipeline:
                 contexts=contexts,
                 proposals=proposals,
                 proposal_origin=proposal_origin,
+                provider_telemetry=provider_telemetry,
             )
         )
 
@@ -539,7 +622,10 @@ class RequirementAssessmentPipeline:
         list[RequirementAssessment],
         list[RequirementAssessmentProposal],
     ]:
-        proposals = self.propose_with_provider(
+        (
+            proposals,
+            provider_telemetry,
+        ) = self.propose_with_provider(
             session=session,
             opportunity_id=opportunity_id,
             provider=provider,
@@ -573,6 +659,7 @@ class RequirementAssessmentPipeline:
             opportunity_id=opportunity_id,
             proposals=proposals,
             proposal_origin=proposal_origin,
+            provider_telemetry=provider_telemetry,
         )
 
         return (
