@@ -7,7 +7,9 @@ from app.domain.rules.jd_extraction import (
     JDExtractionPolicy,
 )
 from app.modules.opportunities.schemas import (
+    JDExtractionProposal,
     JobDescriptionInput,
+    RawJobDescriptionInput,
 )
 
 
@@ -23,6 +25,30 @@ class JDExtractionValidator:
     ) -> None:
         self.policy = (
             policy or JDExtractionPolicy()
+        )
+
+    def validate_proposal(
+        self,
+        *,
+        raw_job: RawJobDescriptionInput,
+        proposal: JDExtractionProposal,
+    ) -> JobDescriptionInput:
+        extraction = JobDescriptionInput(
+            company=raw_job.company,
+            role_title=raw_job.role_title,
+            location=raw_job.location,
+            raw_text=raw_job.raw_text,
+            requirements=[
+                requirement.model_copy(
+                    deep=True
+                )
+                for requirement
+                in proposal.requirements
+            ],
+        )
+
+        return self.validate(
+            extraction
         )
 
     def validate(
