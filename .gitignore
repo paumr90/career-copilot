@@ -1,29 +1,85 @@
-# Python virtual environment
-.venv/
-
-# Python cache
-__pycache__/
-*.py[cod]
-
-# Python package metadata
-*.egg-info/
-
-# Environment variables / secrets
+# =========================
+# Environment variables
+# =========================
 .env
 .env.*
 !.env.example
 
-# Private Career Master seeds
-seeds/career_master/*.local.json
+# =========================
+# Python virtual environments
+# =========================
+.venv/
+venv/
+env/
+ENV/
 
-# Test and tooling cache
+# =========================
+# Python generated files
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# =========================
+# Packaging
+# =========================
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# =========================
+# Testing / coverage
+# =========================
 .pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# =========================
+# Type checking / linting
+# =========================
 .mypy_cache/
 .ruff_cache/
-.coverage
-htmlcov/
 
-# IDE / OS
+# =========================
+# Local databases
+# =========================
+*.db
+*.sqlite
+*.sqlite3
+
+# =========================
+# Logs
+# =========================
+*.log
+logs/
+
+# =========================
+# IDE / editors
+# =========================
 .vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# Operating system files
+# =========================
 .DS_Store
 Thumbs.db
+
+# =========================
+# Temporary files
+# =========================
+tmp/
+temp/
+*.tmp
+
+# =========================
+# Local / private application data
+# =========================
+*.local.json
