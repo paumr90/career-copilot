@@ -34,9 +34,7 @@ class RequirementAssessmentProposal(BaseModel):
 
     proposed_status: MatchStatus
 
-    evidence: list[
-        ProfileEvidenceReference
-    ] = Field(
+    evidence: list[ProfileEvidenceReference] = Field(
         default_factory=list,
     )
 
@@ -50,19 +48,12 @@ class RequirementAssessmentProposal(BaseModel):
     @model_validator(mode="after")
     def validate_unique_evidence(
         self,
-    ) -> "RequirementAssessmentProposal":
-        evidence_ids = [
-            evidence.profile_fact_id
-            for evidence in self.evidence
-        ]
+    ) -> RequirementAssessmentProposal:
+        evidence_ids = [evidence.profile_fact_id for evidence in self.evidence]
 
-        if len(evidence_ids) != len(
-            set(evidence_ids)
-        ):
+        if len(evidence_ids) != len(set(evidence_ids)):
             raise ValueError(
-                "RequirementAssessmentProposal "
-                "cannot cite duplicate "
-                "profile_fact_id values."
+                "RequirementAssessmentProposal cannot cite duplicate profile_fact_id values."
             )
 
         return self
@@ -76,9 +67,7 @@ class RequirementAssessment(BaseModel):
 
     match_status: MatchStatus
 
-    evidence: list[
-        ProfileEvidenceReference
-    ] = Field(
+    evidence: list[ProfileEvidenceReference] = Field(
         default_factory=list,
     )
 
@@ -92,22 +81,21 @@ class RequirementAssessment(BaseModel):
     @model_validator(mode="after")
     def validate_evidence_consistency(
         self,
-    ) -> "RequirementAssessment":
-        if self.match_status in {
-            MatchStatus.MATCH,
-            MatchStatus.PARTIAL_MATCH,
-            MatchStatus.GAP,
-        } and not self.evidence:
-            raise ValueError(
-                f"{self.match_status.value} requires at least "
-                "one Career Master evidence reference."
-            )
-
+    ) -> RequirementAssessment:
         if (
             self.match_status
-            == MatchStatus.UNKNOWN
-            and self.evidence
+            in {
+                MatchStatus.MATCH,
+                MatchStatus.PARTIAL_MATCH,
+                MatchStatus.GAP,
+            }
+            and not self.evidence
         ):
+            raise ValueError(
+                f"{self.match_status.value} requires at least one Career Master evidence reference."
+            )
+
+        if self.match_status == MatchStatus.UNKNOWN and self.evidence:
             raise ValueError(
                 "UNKNOWN cannot contain Career Master evidence. "
                 "If relevant evidence exists, classify the requirement "
@@ -132,24 +120,15 @@ class FitScoringRequirement(BaseModel):
     @model_validator(mode="after")
     def validate_requirement_consistency(
         self,
-    ) -> "FitScoringRequirement":
-        if (
-            self.requirement_key
-            != self.assessment.requirement_key
-        ):
+    ) -> FitScoringRequirement:
+        if self.requirement_key != self.assessment.requirement_key:
             raise ValueError(
                 "FitScoringRequirement requirement_key must match "
                 "RequirementAssessment requirement_key."
             )
 
-        if (
-            self.blocking
-            and self.priority
-            != RequirementPriority.MUST_HAVE
-        ):
-            raise ValueError(
-                "blocking=True is only valid for MUST_HAVE requirements."
-            )
+        if self.blocking and self.priority != RequirementPriority.MUST_HAVE:
+            raise ValueError("blocking=True is only valid for MUST_HAVE requirements.")
 
         return self
 
@@ -211,15 +190,11 @@ class EvidenceCandidateSet(BaseModel):
 
     retrieval_rule_version: str
 
-    primary_candidates: list[
-        CareerEvidenceCandidate
-    ] = Field(
+    primary_candidates: list[CareerEvidenceCandidate] = Field(
         default_factory=list,
     )
 
-    supporting_candidates: list[
-        CareerEvidenceCandidate
-    ] = Field(
+    supporting_candidates: list[CareerEvidenceCandidate] = Field(
         default_factory=list,
     )
 
@@ -258,9 +233,7 @@ class EvidenceRankingResult(BaseModel):
         ge=0,
     )
 
-    ranked_candidates: list[
-        RankedEvidenceCandidate
-    ] = Field(
+    ranked_candidates: list[RankedEvidenceCandidate] = Field(
         default_factory=list,
     )
 
@@ -283,6 +256,8 @@ class SemanticAssessmentRequirement(BaseModel):
     category: RequirementCategory
 
     blocking: bool = False
+
+    source_excerpts: list[str] = Field(default_factory=list)
 
     evidence_text: str | None = Field(
         default=None,
@@ -322,28 +297,19 @@ class SemanticAssessmentRequest(BaseModel):
 
     requirement: SemanticAssessmentRequirement
 
-    ranked_evidence: list[
-        SemanticAssessmentEvidence
-    ] = Field(
+    ranked_evidence: list[SemanticAssessmentEvidence] = Field(
         default_factory=list,
     )
 
     @model_validator(mode="after")
     def validate_unique_evidence(
         self,
-    ) -> "SemanticAssessmentRequest":
-        evidence_ids = [
-            evidence.profile_fact_id
-            for evidence in self.ranked_evidence
-        ]
+    ) -> SemanticAssessmentRequest:
+        evidence_ids = [evidence.profile_fact_id for evidence in self.ranked_evidence]
 
-        if len(evidence_ids) != len(
-            set(evidence_ids)
-        ):
+        if len(evidence_ids) != len(set(evidence_ids)):
             raise ValueError(
-                "SemanticAssessmentRequest cannot "
-                "contain duplicate profile_fact_id "
-                "values."
+                "SemanticAssessmentRequest cannot contain duplicate profile_fact_id values."
             )
 
         return self

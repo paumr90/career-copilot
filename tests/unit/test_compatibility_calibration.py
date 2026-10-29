@@ -252,10 +252,10 @@ def test_conditions_do_not_contribute_to_the_professional_score():
         requirements=[professional, salary],
         assessments=assessments,
     )
-    assert report["score"] == 100
+    assert report["score"] is None
     assert report["coverage_percent"] == 100
-    assert report["combined_fit"]["score"] == 91.67
-    assert report["score_scope"] == "professional_requirements_only"
+    assert report["legacy_fit_audit"]["combined"]["score"] == 91.67
+    assert report["score_scope"] == "no_aggregate_score"
     assert report["recommendation"] == "REVIEW"
     assert report["conditions"][0]["status"] == "PARTIAL_MATCH"
 

@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.domain.enums import EvidenceState, SourceType
@@ -29,9 +29,7 @@ class FitEvaluationService:
         audit_service: RuleEvaluationService | None = None,
     ) -> None:
         self.policy = policy or FitScoringPolicy()
-        self.audit_service = (
-            audit_service or RuleEvaluationService()
-        )
+        self.audit_service = audit_service or RuleEvaluationService()
 
     def _load_canonical_opportunity(
         self,
@@ -49,16 +47,12 @@ class FitEvaluationService:
             )
             .join(
                 Source,
-                Opportunity.jd_source_id
-                == Source.source_id,
+                Opportunity.jd_source_id == Source.source_id,
             )
             .where(
-                Opportunity.opportunity_id
-                == opportunity_id,
-                Source.source_type
-                == SourceType.JD.value,
-                Source.authority_level
-                == "CANONICAL_JD",
+                Opportunity.opportunity_id == opportunity_id,
+                Source.source_type == SourceType.JD.value,
+                Source.authority_level == "CANONICAL_JD",
                 Source.immutable.is_(True),
             )
         ).one_or_none()
@@ -76,12 +70,13 @@ class FitEvaluationService:
             session.scalars(
                 select(JobRequirement)
                 .where(
-                    JobRequirement.opportunity_id
-                    == opportunity_id
+                    JobRequirement.opportunity_id == opportunity_id,
+                    or_(
+                        JobRequirement.criterion_type.is_(None),
+                        JobRequirement.criterion_type != "CONTEXT",
+                    ),
                 )
-                .order_by(
-                    JobRequirement.requirement_key
-                )
+                .order_by(JobRequirement.requirement_key)
             ).all()
         )
 
@@ -96,34 +91,19 @@ class FitEvaluationService:
         job_requirements: list[JobRequirement],
         assessments: list[RequirementAssessment],
     ) -> list[FitScoringRequirement]:
-        assessment_keys = [
-            assessment.requirement_key
-            for assessment in assessments
-        ]
+        assessment_keys = [assessment.requirement_key for assessment in assessments]
 
-        if len(assessment_keys) != len(
-            set(assessment_keys)
-        ):
-            raise ValueError(
-                "Duplicate requirement assessments "
-                "are not allowed."
-            )
+        if len(assessment_keys) != len(set(assessment_keys)):
+            raise ValueError("Duplicate requirement assessments are not allowed.")
 
-        canonical_keys = {
-            requirement.requirement_key
-            for requirement in job_requirements
-        }
+        canonical_keys = {requirement.requirement_key for requirement in job_requirements}
 
         provided_keys = set(assessment_keys)
 
         if canonical_keys != provided_keys:
-            missing_keys = sorted(
-                canonical_keys - provided_keys
-            )
+            missing_keys = sorted(canonical_keys - provided_keys)
 
-            extra_keys = sorted(
-                provided_keys - canonical_keys
-            )
+            extra_keys = sorted(provided_keys - canonical_keys)
 
             raise ValueError(
                 "Assessment keys must exactly match "
@@ -132,21 +112,14 @@ class FitEvaluationService:
                 f"Extra: {extra_keys}."
             )
 
-        assessment_by_key = {
-            assessment.requirement_key: assessment
-            for assessment in assessments
-        }
+        assessment_by_key = {assessment.requirement_key: assessment for assessment in assessments}
 
         return [
             FitScoringRequirement(
-                requirement_key=(
-                    requirement.requirement_key
-                ),
+                requirement_key=(requirement.requirement_key),
                 priority=requirement.priority,
                 blocking=requirement.blocking,
-                assessment=assessment_by_key[
-                    requirement.requirement_key
-                ],
+                assessment=assessment_by_key[requirement.requirement_key],
             )
             for requirement in job_requirements
         ]
@@ -159,8 +132,7 @@ class FitEvaluationService:
         evidence_ids = {
             evidence.profile_fact_id
             for requirement in requirements
-            for evidence
-            in requirement.assessment.evidence
+            for evidence in requirement.assessment.evidence
         }
 
         if not evidence_ids:
@@ -171,37 +143,23 @@ class FitEvaluationService:
                 select(ProfileFact.fact_id)
                 .join(
                     Source,
-                    ProfileFact.source_id
-                    == Source.source_id,
+                    ProfileFact.source_id == Source.source_id,
                 )
                 .where(
-                    ProfileFact.fact_id.in_(
-                        evidence_ids
-                    ),
-                    ProfileFact.evidence_state
-                    == EvidenceState.CONFIRMED.value,
-                    ProfileFact.superseded_by.is_(
-                        None
-                    ),
-                    Source.source_type
-                    == SourceType.PROFILE.value,
-                    Source.authority_level
-                    == "CANONICAL_PROFILE",
+                    ProfileFact.fact_id.in_(evidence_ids),
+                    ProfileFact.evidence_state == EvidenceState.CONFIRMED.value,
+                    ProfileFact.superseded_by.is_(None),
+                    Source.source_type == SourceType.PROFILE.value,
+                    Source.authority_level == "CANONICAL_PROFILE",
                     Source.immutable.is_(True),
                 )
             ).all()
         )
 
-        invalid_evidence_ids = (
-            evidence_ids - valid_evidence_ids
-        )
+        invalid_evidence_ids = evidence_ids - valid_evidence_ids
 
         if invalid_evidence_ids:
-            invalid_values = sorted(
-                str(evidence_id)
-                for evidence_id
-                in invalid_evidence_ids
-            )
+            invalid_values = sorted(str(evidence_id) for evidence_id in invalid_evidence_ids)
 
             raise ValueError(
                 "Fit evidence must reference active, "
@@ -226,11 +184,9 @@ class FitEvaluationService:
             opportunity_id=opportunity_id,
         )
 
-        scoring_requirements = (
-            self._build_scoring_requirements(
-                job_requirements=job_requirements,
-                assessments=assessments,
-            )
+        scoring_requirements = self._build_scoring_requirements(
+            job_requirements=job_requirements,
+            assessments=assessments,
         )
 
         self._validate_profile_evidence(
@@ -240,33 +196,19 @@ class FitEvaluationService:
 
         input_payload = {
             "opportunity": {
-                "opportunity_id": str(
-                    opportunity.opportunity_id
-                ),
-                "jd_source_id": str(
-                    source.source_id
-                ),
-                "jd_snapshot_hash": (
-                    source.snapshot_hash
-                ),
+                "opportunity_id": str(opportunity.opportunity_id),
+                "jd_source_id": str(source.source_id),
+                "jd_snapshot_hash": (source.snapshot_hash),
             },
             "requirements": [
-                requirement.model_dump(
-                    mode="json"
-                )
-                for requirement
-                in scoring_requirements
+                requirement.model_dump(mode="json") for requirement in scoring_requirements
             ],
             "rules_snapshot": self.policy.config,
         }
 
-        result = self.policy.evaluate(
-            scoring_requirements
-        )
+        result = self.policy.evaluate(scoring_requirements)
 
-        result_json = result.model_dump(
-            mode="json"
-        )
+        result_json = result.model_dump(mode="json")
 
         evaluation = self.audit_service.record(
             session,

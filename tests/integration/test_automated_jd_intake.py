@@ -219,7 +219,7 @@ def test_raw_jd_is_automatically_extracted_created_and_audited() -> None:
 
         assert (
             extraction_evaluation.ruleset_version
-            == "0.2"
+            == "0.3"
         )
 
         assert (

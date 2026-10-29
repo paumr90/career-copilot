@@ -30,6 +30,8 @@ def exercise(quotes, checkpoints):
                             "requirement_key": "java",
                             "description": "Write Java services",
                             "category": "TECHNOLOGY",
+                            "criterion_type": "ESSENTIAL",
+                            "classification_reason": "The source explicitly says Must.",
                             "priority": "MUST_HAVE",
                             "blocking": False,
                             "evidence_text": quote,
@@ -111,3 +113,50 @@ def test_provider_failure_is_audited_without_blind_retry():
     assert checkpoints[-1]["status"] == "failed"
     assert len(checkpoints[-1]["attempts"]) == 1
     assert checkpoints[-1]["attempts"][0]["status"] == "provider_failed"
+
+
+def test_unique_whitespace_difference_uses_literal_source_and_keeps_provider_quote():
+    checkpoints = []
+    (job, result, attempts), provider = exercise(["Must\nwrite Java services."], checkpoints)
+    assert len(provider.calls) == 1
+    assert result.proposal.requirements[0].evidence_text == "Must\nwrite Java services."
+    assert job.requirements[0].evidence_text == "Must write Java services."
+    assert attempts[0]["quote_repairs"][0]["provider_quote"] == "Must\nwrite Java services."
+    assert (
+        attempts[0]["validated_proposal"]["requirements"][0]["evidence_text"]
+        == "Must write Java services."
+    )
+
+
+@pytest.mark.parametrize(
+    "source,quote",
+    [
+        ("Barcelona. Hybrid work.", "Barcelona (Hybrid)"),
+        ("Java services", "Java, services"),
+        ("Java  services; Java\nservices", "Java services"),
+    ],
+)
+def test_spacing_recovery_never_invents_words_punctuation_or_chooses_ambiguous_span(source, quote):
+    from app.modules.opportunities.extraction_workflow import restore_literal_whitespace
+
+    proposal = JDExtractionProposal(
+        requirements=[
+            {
+                "requirement_key": "test",
+                "description": "Test",
+                "category": "OTHER",
+                "priority": "SECONDARY",
+                "evidence_text": quote,
+            }
+        ]
+    )
+    restored, repairs = restore_literal_whitespace(proposal, source)
+    assert not repairs
+    assert restored.requirements[0].evidence_text == quote
+
+
+def test_repair_feedback_can_omit_metadata_only_requirement_without_rewriting_source():
+    checkpoints = []
+    (_, _, _), provider = exercise(["Barcelona (Hybrid)", "Must write Java services."], checkpoints)
+    assert "supported ONLY by metadata" in provider.calls[1]["correction"]
+    assert "omit that unsupported criterion" in provider.calls[1]["correction"]

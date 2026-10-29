@@ -1,4 +1,4 @@
-version: "0.2"
+version: "0.3"
 
 role: "requirement_assessment_proposer"
 
@@ -10,6 +10,7 @@ input:
     - category
     - blocking
     - evidence_text
+    - source_excerpts
 
   include_ranked_evidence:
     - profile_fact_id

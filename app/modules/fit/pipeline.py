@@ -1,7 +1,7 @@
 import uuid
 from dataclasses import dataclass
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.domain.enums import SourceType
@@ -100,7 +100,13 @@ class RequirementAssessmentPipeline:
         return list(
             session.scalars(
                 select(JobRequirement)
-                .where(JobRequirement.opportunity_id == opportunity_id)
+                .where(
+                    JobRequirement.opportunity_id == opportunity_id,
+                    or_(
+                        JobRequirement.criterion_type.is_(None),
+                        JobRequirement.criterion_type != "CONTEXT",
+                    ),
+                )
                 .order_by(JobRequirement.requirement_key)
             ).all()
         )
@@ -340,6 +346,9 @@ class RequirementAssessmentPipeline:
                     "requirement": {
                         "requirement_key": (requirement.requirement_key),
                         "description": (requirement.description),
+                        "criterion_type": requirement.criterion_type,
+                        "classification_reason": requirement.classification_reason,
+                        "source_excerpts": requirement.source_excerpts,
                         "priority": requirement.priority,
                         "category": requirement.category,
                         "blocking": requirement.blocking,

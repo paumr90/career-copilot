@@ -26,10 +26,19 @@ def requirement_text(requirement) -> str:
 
 
 def is_vehicle_requirement(requirement) -> bool:
+    # A shared source sentence may mention education and a vehicle. Route by the
+    # extracted criterion's meaning, not incidental words in its source excerpt.
+    category = str(requirement.category)
+    if category not in {"OTHER", "WORK_MODE", "LOCATION"}:
+        return False
+    subject = normalized(
+        requirement.description
+        + " "
+        + getattr(requirement, "requirement_key", "").replace("_", " ")
+    )
     return bool(
         re.search(
-            r"own vehicle|vehicle ownership|vehiculo propio|vehicle propi",
-            requirement_text(requirement),
+            r"own(?: a| your)? vehicle|vehicle ownership|vehiculo propio|vehicle propi", subject
         )
     )
 
@@ -54,7 +63,7 @@ def salary_amounts(text: str) -> list[float]:
 
 
 class CompatibilityAssessmentRules:
-    VERSION = "0.1"
+    VERSION = "0.2"
 
     def validate(self, *, request, proposal) -> None:
         if proposal.proposed_status == MatchStatus.UNKNOWN:

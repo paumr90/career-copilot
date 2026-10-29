@@ -15,16 +15,16 @@ This checkout includes the reviewed CLI workflow and isolated test setup:
 | Area | Implemented capability |
 |---|---|
 | Professional profile | Structured facts, canonical sources and versioned provenance |
-| Job descriptions | Governed extraction, verbatim validation, one corrective attempt and source-bullet inventory |
+| Job descriptions | Classified extraction, grouped role capabilities, multiple literal excerpts, one corrective attempt and source-bullet inventory |
 | Evidence | Governed retrieval, multilingual ranking and minimal evidence projection |
 | Assessment | Semantic proposals, deterministic admissibility checks and rejected-attempt audits |
-| Results | Coverage and critical unknowns first; professional scores separate from practical conditions |
-| Review workflow | CLI for extraction, explicit requirement review and evaluation; rollback by default |
-| Tests | 224 passing unit and PostgreSQL integration tests using synthetic data |
+| Results | Essential and desirable qualifications, role capabilities and practical conditions in separate blocks; no aggregate score |
+| Review workflow | Local web interface and CLI for extraction, explicit requirement review and evaluation; rollback by default |
+| Tests | 252 passing unit and PostgreSQL integration tests using synthetic data |
 
-The suite was verified locally on **29 October 2026**. This is a software-test result, not a measured assessment-accuracy claim. An opt-in live diagnostic matched 9 of 10 synthetic reference labels; the remaining partner/vendor ambiguity is documented in [validation notes](docs/semantic-validation.md).
+The suite was verified locally on **29 October 2026**. This is a software-test result, not a measured assessment-accuracy claim. An earlier opt-in live diagnostic (semantic policy v0.2, before segmented assessment) matched 9 of 10 synthetic reference labels; the remaining partner/vendor ambiguity is documented in [validation notes](docs/semantic-validation.md).
 
-There is **no product web interface or complete application tracker yet**. The public FastAPI entry point currently exposes a health check; business workflows are implemented as Python services.
+A minimal **local web interface** now supports pasting an offer, reviewing each extracted requirement, evaluating evidence and explicitly saving the result. It is a single-user prototype with no authentication or application-stage tracker. Bind it to loopback only.
 
 ## What the backend does
 
@@ -55,15 +55,20 @@ OpenAI integration is implemented for extraction and semantic assessment. The mo
 
 ## Interpreting a result
 
-A score is useful only alongside its **evidence coverage and unresolved requirements**.
+The interface no longer presents a global fit score. Offer content has six distinct types:
 
-- Missing evidence is `UNKNOWN`; it does not establish a gap.
-- A confirmed gap needs affirmative evidence of contradiction or non-compliance.
-- Unknown requirements are excluded from the numerical score denominator, so a high score can coexist with incomplete evidence.
-- Lexical similarity is a retrieval signal, not proof of professional competence.
-- Recommendations support human review; they do not submit applications or make career decisions.
+- **Context:** company description and role mission; preserved without candidate assessment.
+- **Role capabilities:** related responsibilities grouped into distinct capability families, each with its original source excerpts. These describe ability to perform the role, not eligibility weights.
+- **Essential qualifications:** explicit requirements justified by source wording. A confirmed essential gap cannot be compensated by desirable qualifications or role capabilities.
+- **Desirable qualifications:** complementary evidence, shown separately. Unknown desirables do not block supported essentials.
+- **Unclassified qualifications:** mandatory versus preferred status is unclear; classification remains pending review. A Requirements heading alone is insufficient to infer essential status.
+- **Practical conditions:** salary, residence, vehicle, work mode and eligibility conditions assessed independently.
 
-The report also presents salary, residence, vehicle ownership and work arrangements separately from professional fit.
+Unknown evidence is not a confirmed gap. If no professional essentials are established, or classification or essential/practical questions remain unresolved, the report calls for review. It does not infer readiness from a high average over known criteria. Context never triggers model assessment calls.
+
+Counts and coverage are specific to each selection block. The number of responsibility sentences cannot dilute essential qualification coverage. Historical numerical calculations are retained only under `legacy_fit_audit` for traceability; top-level `score` is null and the web interface does not display that internal calculation.
+
+See [segmented assessment details](docs/segmented-assessment.md).
 
 ## Governance and privacy
 
@@ -139,13 +144,13 @@ docker compose up -d
 alembic upgrade head
 ```
 
-### 4. Run the health endpoint
+### 4. Open the local interface
 
 ```bash
-uvicorn app.main:app --reload
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8765
 ```
 
-The health check is available at `/health`.
+Open `http://127.0.0.1:8765`. On Windows, `./start-local.ps1` starts the same loopback-only service. The health check remains available at `/health`. The configured canonical profile and PostgreSQL database are shared with the CLI. See [local interface details](docs/local-interface.md).
 
 ### 5. Run tests
 
@@ -192,7 +197,7 @@ Passing software tests does not establish assessment quality. Real job descripti
 1. Expand independent reference cases and repeat runs to measure model variability.
 2. Resolve recurring extraction, evidence-selection and assessment discrepancies.
 3. Review semantic boundary cases, including external partners versus vendors.
-4. Build a minimal interface for requirement review and evidence inspection.
+4. Validate the local interface with real users and improve evidence readability.
 5. Add application stages, interviews, follow-ups and archival.
 6. Explore CV support and controlled external integrations.
 
