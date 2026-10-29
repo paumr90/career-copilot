@@ -170,8 +170,6 @@ def main():
                         key: report[key]
                         for key in (
                             "assessment_summary",
-                            "score",
-                            "coverage_percent",
                             "recommendation",
                             "provisional",
                         )

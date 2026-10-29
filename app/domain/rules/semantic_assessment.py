@@ -24,6 +24,7 @@ class SemanticAssessmentPolicy:
         "category",
         "blocking",
         "evidence_text",
+        "source_excerpts",
     }
 
     EXPECTED_EVIDENCE_FIELDS = {

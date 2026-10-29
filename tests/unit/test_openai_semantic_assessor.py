@@ -34,7 +34,7 @@ EVIDENCE_ID = uuid.UUID(
 
 def build_request() -> SemanticAssessmentRequest:
     return SemanticAssessmentRequest(
-        semantic_rule_version="0.2",
+        semantic_rule_version="0.3",
         retrieval_rule_version="0.1",
         ranking_rule_version="0.1",
         requirement=(
@@ -326,7 +326,7 @@ def test_provider_sends_governed_request() -> None:
     )
 
     assert (
-        '"version": "0.2"'
+        '"version": "0.3"'
         in developer_prompt
     )
 

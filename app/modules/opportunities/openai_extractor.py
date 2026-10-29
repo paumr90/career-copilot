@@ -44,7 +44,7 @@ class OpenAIJDExtractionProvider:
     credentials or real waiting time.
     """
 
-    ADAPTER_VERSION = "0.3"
+    ADAPTER_VERSION = "0.5"
 
     def __init__(
         self,
@@ -314,6 +314,16 @@ class OpenAIJDExtractionProvider:
             "include evidence_text copied "
             "verbatim as one contiguous substring "
             "of the Job Description.\n\n"
+            "Only text inside JOB DESCRIPTION START/END is quotable source. "
+            "Company, Role title and Location fields are contextual metadata, not source "
+            "evidence. Omit criteria supported only by metadata. Do not combine separate "
+            "location and work-mode phrases into an invented contiguous quotation.\n\n"
+            "First distinguish context, grouped role capabilities, essential qualifications, "
+            "desirable qualifications, unclassified qualifications and practical conditions. "
+            "Every item must include criterion_type and classification_reason. A section "
+            "heading alone is not proof of mandatory status. Consolidate related duties "
+            "into one capability item, preserving their separate literal source_excerpts. "
+            "Do not turn every sentence into an independently scored qualification.\n\n"
             "Follow this governed extraction "
             "policy exactly:\n"
             f"{policy_json}"

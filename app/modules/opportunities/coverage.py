@@ -19,11 +19,8 @@ def extraction_coverage(job: JobDescriptionInput) -> dict:
         keys = [
             item.requirement_key
             for item in job.requirements
-            if item.evidence_text
-            and (
-                strip_bullet(item.evidence_text) in bullet
-                or bullet in strip_bullet(item.evidence_text)
-            )
+            if any(strip_bullet(excerpt) in bullet or bullet in strip_bullet(excerpt)
+                   for excerpt in [item.evidence_text, *item.source_excerpts] if excerpt)
         ]
         if keys:
             represented.append({"source_excerpt": bullet, "requirement_keys": keys})

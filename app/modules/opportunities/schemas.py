@@ -6,6 +6,7 @@ from pydantic import (
 )
 
 from app.domain.enums import (
+    CriterionType,
     RequirementCategory,
     RequirementPriority,
 )
@@ -25,6 +26,10 @@ class JobRequirementInput(BaseModel):
         min_length=1,
         max_length=2000,
     )
+
+    criterion_type: CriterionType | None = None
+    classification_reason: str = Field(default="", max_length=2000)
+    source_excerpts: list[str] = Field(default_factory=list)
 
     priority: RequirementPriority
 

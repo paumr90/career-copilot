@@ -162,7 +162,7 @@ def test_provider_implements_protocol() -> None:
 
     assert provider.provider_name == "openai"
 
-    assert provider.provider_version == "0.3"
+    assert provider.provider_version == "0.5"
 
     assert provider.model_name == "test-model"
 
@@ -220,7 +220,7 @@ def test_provider_sends_governed_request() -> None:
 
     assert "UNTRUSTED DATA" in developer_prompt
 
-    assert '"version": "0.2"' in developer_prompt
+    assert '"version": "0.3"' in developer_prompt
 
     assert request.raw_text in user_prompt
 
@@ -278,7 +278,7 @@ def test_provider_returns_telemetry_envelope() -> None:
 
     assert telemetry.provider_name == "openai"
 
-    assert telemetry.provider_version == "0.3"
+    assert telemetry.provider_version == "0.5"
 
     assert telemetry.model_name == "test-model-resolved"
 

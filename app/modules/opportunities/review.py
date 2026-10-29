@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.domain.enums import RequirementCategory, RequirementPriority
+from app.domain.enums import CriterionType, RequirementCategory, RequirementPriority
 from app.modules.opportunities.extraction import JDExtractionValidator
 from app.modules.opportunities.schemas import JobDescriptionInput
 
@@ -14,12 +14,15 @@ from app.modules.opportunities.schemas import JobDescriptionInput
 class RequirementAmendment(BaseModel):
     model_config = ConfigDict(extra="forbid")
     requirement_key: str
+    criterion_type: CriterionType | None = None
+    classification_reason: str | None = None
+    source_excerpts: list[str] | None = None
     priority: RequirementPriority | None = None
     category: RequirementCategory | None = None
     blocking: bool | None = None
     description: str | None = None
     evidence_text: str | None = None
-    reason: str = Field(min_length=1)
+    reason: str = ""
 
 
 class RequirementReviewRequest(BaseModel):
@@ -52,10 +55,34 @@ class RequirementReviewService:
             {
                 key: value
                 for key, value in amendment.items()
-                if key not in {"description", "evidence_text"} or value is not None
+                if key
+                not in {
+                    "description",
+                    "evidence_text",
+                    "criterion_type",
+                    "classification_reason",
+                    "source_excerpts",
+                }
+                or value is not None
             }
             for amendment in content.get("amendments", [])
         ]
+        # Added optional classification fields must not invalidate historical review hashes.
+        for snapshot_key in ("original", "reviewed"):
+            if snapshot_key in content:
+                snapshot = dict(content[snapshot_key])
+                snapshot["requirements"] = [
+                    {
+                        k: v
+                        for k, v in item.items()
+                        if not (
+                            k in {"criterion_type", "classification_reason", "source_excerpts"}
+                            and v in (None, "", [])
+                        )
+                    }
+                    for item in snapshot["requirements"]
+                ]
+                content[snapshot_key] = snapshot
         return hashlib.sha256(
             json.dumps(content, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode(
                 "utf-8"
@@ -81,8 +108,6 @@ class RequirementReviewService:
             amendment = changes.get(requirement.requirement_key)
             values = requirement.model_dump(mode="json")
             if amendment:
-                if not amendment.reason.strip():
-                    raise ValueError("Each amendment requires a reason.")
                 values.update(
                     amendment.model_dump(
                         mode="json",
@@ -90,6 +115,29 @@ class RequirementReviewService:
                         exclude={"requirement_key", "reason"},
                     )
                 )
+                if amendment.criterion_type is not None:
+                    kind = amendment.criterion_type.value
+                    if amendment.priority is None:
+                        priority = {
+                            "ESSENTIAL": "MUST_HAVE",
+                            "DESIRABLE": "NICE_TO_HAVE",
+                            "CONTEXT": "SECONDARY",
+                            "ROLE_CAPABILITY": "SECONDARY",
+                            "UNCLASSIFIED": "SECONDARY",
+                        }.get(kind)
+                        if priority:
+                            values["priority"] = priority
+                    if values["priority"] != "MUST_HAVE" and amendment.blocking is None:
+                        values["blocking"] = False
+                    if (
+                        amendment.criterion_type != requirement.criterion_type
+                        and not (amendment.classification_reason or "").strip()
+                    ):
+                        values["classification_reason"] = (
+                            amendment.reason.strip()
+                            or "Classificació modificada manualment pel revisor. Motiu no indicat; "
+                            "la proposta inicial es conserva a l'històric."
+                        )
             requirements.append(values)
         values = original.model_dump(mode="json")
         values["requirements"] = requirements

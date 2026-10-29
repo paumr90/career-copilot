@@ -121,7 +121,7 @@ def test_builder_creates_semantic_request() -> None:
 
     assert (
         request.semantic_rule_version
-        == "0.2"
+        == "0.3"
     )
 
     assert (

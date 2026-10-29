@@ -1,5 +1,5 @@
 import hashlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
@@ -12,9 +12,7 @@ from app.modules.opportunities.schemas import JobDescriptionInput
 class OpportunityService:
     @staticmethod
     def calculate_snapshot_hash(raw_text: str) -> str:
-        return hashlib.sha256(
-            raw_text.encode("utf-8")
-        ).hexdigest()
+        return hashlib.sha256(raw_text.encode("utf-8")).hexdigest()
 
     def create_from_job_description(
         self,
@@ -25,23 +23,19 @@ class OpportunityService:
         uri: str | None = None,
         captured_at: datetime | None = None,
     ) -> tuple[Source, Opportunity, list[JobRequirement]]:
-        snapshot_hash = self.calculate_snapshot_hash(
-            job_description.raw_text
-        )
+        snapshot_hash = self.calculate_snapshot_hash(job_description.raw_text)
 
         source = Source(
             source_type=SourceType.JD.value,
             external_id=external_id,
             uri=uri,
-            captured_at=captured_at or datetime.now(timezone.utc),
+            captured_at=captured_at or datetime.now(UTC),
             snapshot_hash=snapshot_hash,
             metadata_json={
                 "company": job_description.company,
                 "role_title": job_description.role_title,
                 "location": job_description.location,
-                "requirements_count": len(
-                    job_description.requirements
-                ),
+                "requirements_count": len(job_description.requirements),
             },
             authority_level="CANONICAL_JD",
             immutable=True,
@@ -72,6 +66,11 @@ class OpportunityService:
                 category=requirement_input.category.value,
                 blocking=requirement_input.blocking,
                 evidence_text=requirement_input.evidence_text,
+                criterion_type=requirement_input.criterion_type.value
+                if requirement_input.criterion_type
+                else None,
+                classification_reason=requirement_input.classification_reason,
+                source_excerpts=requirement_input.source_excerpts,
             )
 
             session.add(requirement)
@@ -80,11 +79,14 @@ class OpportunityService:
         session.flush()
 
         return source, opportunity, requirements
+
     def create_from_review(self, session: Session, *, review):
         from app.modules.opportunities.review import RequirementReviewService
+
         RequirementReviewService().verify(review)
         source, opportunity, requirements = self.create_from_job_description(
-            session=session, job_description=review.reviewed,
+            session=session,
+            job_description=review.reviewed,
         )
         source.metadata_json = {
             **source.metadata_json,

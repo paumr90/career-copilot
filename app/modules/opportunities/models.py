@@ -11,7 +11,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.db.base import Base
@@ -127,6 +127,10 @@ class JobRequirement(Base):
         nullable=False,
         default=False,
     )
+
+    criterion_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    classification_reason: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    source_excerpts: Mapped[list | None] = mapped_column(JSONB, nullable=True)
 
     evidence_text: Mapped[str | None] = mapped_column(
         String(4000),

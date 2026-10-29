@@ -7,7 +7,7 @@ from app.modules.fit.schemas import FitResult, FitScoringRequirement, Requiremen
 from app.modules.opportunities.models import JobRequirement
 
 
-def build_fit_report(
+def _legacy_fit_report(
     *,
     result: FitResult,
     requirements: list[JobRequirement],
@@ -137,3 +137,127 @@ def build_fit_report(
         ],
         "assessments": [item.model_dump(mode="json") for item in assessments],
     }
+
+
+def build_fit_report(*, result, requirements, assessments, minimum_coverage=80.0):
+    from collections import Counter
+
+    from app.modules.opportunities.classification import criterion_kind
+
+    assessable = [r for r in requirements if criterion_kind(r) != "CONTEXT"]
+    report = _legacy_fit_report(
+        result=result,
+        requirements=assessable,
+        assessments=assessments,
+        minimum_coverage=minimum_coverage,
+    )
+    by_key = {a.requirement_key: a for a in assessments}
+    groups = {
+        kind: []
+        for kind in (
+            "CONTEXT",
+            "ROLE_CAPABILITY",
+            "ESSENTIAL",
+            "DESIRABLE",
+            "UNCLASSIFIED",
+            "PRACTICAL_CONDITION",
+        )
+    }
+    for requirement in requirements:
+        kind = criterion_kind(requirement)
+        assessment = by_key.get(requirement.requirement_key)
+        groups[kind].append(
+            {
+                "requirement_key": requirement.requirement_key,
+                "description": requirement.description,
+                "status": assessment.match_status.value if assessment else None,
+                "reason": assessment.rationale
+                if assessment
+                else "Context: not assessed against the candidate.",
+                "classification_reason": getattr(requirement, "classification_reason", None)
+                or "Historical classification inferred from category/priority; verify before reuse.",
+                "classification_inferred": not bool(getattr(requirement, "criterion_type", None)),
+                "criterion_type": kind,
+                "blocking": requirement.blocking,
+                "priority": requirement.priority,
+                "source_excerpts": list(
+                    dict.fromkeys(
+                        [
+                            requirement.evidence_text,
+                            *(getattr(requirement, "source_excerpts", None) or []),
+                        ]
+                    )
+                ),
+            }
+        )
+
+    def section(items):
+        counts = dict(Counter(item["status"] for item in items))
+        return {
+            "items": items,
+            "total": len(items),
+            "counts": counts,
+            "coverage_percent": round(
+                100 * sum(item["status"] != "UNKNOWN" for item in items) / len(items), 2
+            )
+            if items
+            else None,
+        }
+
+    essential = groups["ESSENTIAL"]
+    unclear = groups["UNCLASSIFIED"]
+    conditions = groups["PRACTICAL_CONDITION"]
+    critical_unknowns = [item for item in essential if item["status"] == "UNKNOWN"]
+    pending = [item for item in essential if item["status"] != "MATCH"]
+    condition_pending = [item for item in conditions if item["status"] != "MATCH"]
+    if any(item["status"] == "GAP" for item in essential):
+        decision = "NO_APPLY"
+    elif not essential or unclear or pending or condition_pending:
+        decision = "REVIEW"
+    else:
+        decision = "APPLY"
+    # Numerical legacy calculations remain audit-only; never a product-level fit rating.
+    report["legacy_fit_audit"] = {
+        "professional": report.pop("fit"),
+        "combined": report.pop("combined_fit"),
+    }
+    report.update(
+        assessment_model="segmented_v1",
+        score=None,
+        score_scope="no_aggregate_score",
+        coverage_percent=section(essential)["coverage_percent"],
+        recommendation=decision,
+        scoring_recommendation=None,
+        provisional=decision == "REVIEW",
+        minimum_coverage_percent=None,
+        score_explanation="No aggregate fit score. Essential, desirable, role capabilities and practical conditions are assessed separately.",
+        selection_requirements={
+            "essential": section(essential),
+            "desirable": section(groups["DESIRABLE"]),
+            "unclassified": section(unclear),
+        },
+        role_capabilities=groups["ROLE_CAPABILITY"],
+        role_context=groups["CONTEXT"],
+        practical_conditions=conditions,
+        assessment_summary={
+            "status": "INSUFFICIENT_EVIDENCE"
+            if critical_unknowns or unclear or not essential
+            else "REQUIRES_REVIEW"
+            if decision == "REVIEW"
+            else "ESSENTIAL_GAP"
+            if decision == "NO_APPLY"
+            else "ESSENTIALS_SUPPORTED",
+            "critical_unknown_count": len(critical_unknowns),
+            "critical_unknowns": critical_unknowns,
+            "coverage_percent": section(essential)["coverage_percent"],
+            "essential_total": len(essential),
+            "essential_matched": sum(item["status"] == "MATCH" for item in essential),
+            "classification_pending_count": len(unclear),
+            "message": "Review essential qualifications, unresolved classification and practical conditions independently. Role duties and desirable qualifications cannot compensate for an essential gap.",
+        },
+    )
+    for row in report["requirements"]:
+        requirement = next(r for r in requirements if r.requirement_key == row["requirement_key"])
+        row["criterion_type"] = criterion_kind(requirement)
+        row["source_excerpts"] = getattr(requirement, "source_excerpts", None) or []
+    return report

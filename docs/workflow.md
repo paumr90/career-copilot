@@ -14,7 +14,7 @@ use filenames ending in `.local.json` so they are excluded from Git.
 
 3. Check every requirement against its source excerpt. Fill `reviewer` and
    `reviewed_keys` (each key exactly once). Add any corrections to `amendments`.
-   Each amendment needs a reason and can change priority, category or blocking.
+   Amendment notes are optional; changes are recorded automatically and can change priority, category or blocking.
    The original source text stays unchanged; descriptions and evidence excerpts can be corrected with a reason and source grounding.
 
    ```json
@@ -46,15 +46,9 @@ audit. Add `--save` to commit the opportunity and audit. Configure PostgreSQL,
 
 ## Reading the report
 
-Always read score together with coverage. UNKNOWN is excluded from the score
-denominator; coverage is the proportion of total requirement weight with a known
-assessment. Reports mark results as provisional below 80% coverage or whenever
-requirements remain unknown. A provisional report cannot recommend APPLY;
-the original scoring recommendation is retained separately for audit.
+Reports now separate selection requirements (essential, desirable and unclassified), grouped role capabilities, practical conditions and informational context. There is no aggregate score. A confirmed essential gap cannot be compensated by bonuses or capability matches. Unknown desirables or duties do not reduce essential coverage. Context is never assessed against the candidate.
 
-Each unresolved requirement includes its rationale and a next action. An UNKNOWN
-may indicate missing profile information, inadequate retrieval or ambiguity;
-it is not evidence of a professional gap.
+Classification, essential/practical uncertainty and literal source-inventory warnings can require review. Legacy numerical calculations remain only as audit provenance. See [segmented assessment](segmented-assessment.md) for decision rules, version compatibility and multi-excerpt grouping.
 
 ## Evidence selection and response validation
 
@@ -107,11 +101,7 @@ Review amendments may correct `description` or `evidence_text` with an explicit
 reason. The original snapshot remains unchanged and the revised evidence must
 still be a contiguous verbatim source excerpt.
 
-Reports now score professional requirements separately from location, work mode,
-vehicle ownership and compensation. `fit` and the headline score describe the
-professional subset; `combined_fit` preserves the earlier combined calculation.
-`conditions` lists practical eligibility and negotiation points independently.
-A pending condition prevents an automatic APPLY recommendation.
+Practical eligibility and negotiation points are independent of professional selection qualifications. A pending practical condition prevents automatic APPLY. Explicit mandatory conditions retain their source-backed eligibility status in the practical block.
 
 Factual work-profile fields include `current_city`, optional `current_province`,
 `owns_vehicle`, and `onsite_days_acceptance` (days, status, condition). Import
@@ -128,4 +118,4 @@ conditions are not established.
 
 Each extraction audit now includes an `attempts` array with parsed proposals, available provider telemetry and validation errors. The CLI checkpoints a failed validation before requesting one correction grounded in the original source. A second invalid proposal stops extraction; provider failures are also logged. No invalid job is emitted as successful output.
 
-The report and terminal output lead with `assessment_summary`: coverage, critical unknowns and an insufficient-evidence status where applicable. Read this before the conditional score. See [semantic validation](semantic-validation.md) for the optional live synthetic regression command and its known disagreement.
+The report and terminal output lead with `assessment_summary`: coverage, critical unknowns and an insufficient-evidence status where applicable. There is no conditional score in the current interface. See [semantic validation](semantic-validation.md) for the optional live synthetic regression command and its known disagreement.

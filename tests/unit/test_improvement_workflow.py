@@ -236,7 +236,7 @@ def test_invalid_repair_fails_closed_with_attempt_history():
     assert len(caught.value.assessment_attempts) == 2
 
 
-def test_high_score_with_low_coverage_is_presented_as_provisional_review():
+def test_unknown_desirable_does_not_block_supported_essentials():
     requirement = JobRequirement(
         requirement_key="degree",
         description="Degree",
@@ -276,10 +276,11 @@ def test_high_score_with_low_coverage_is_presented_as_provisional_review():
         requirements=[requirement, known_requirement],
         assessments=[assessment, known],
     )
-    assert report["assessment_summary"]["status"] == "INSUFFICIENT_EVIDENCE"
-    assert report["provisional"]
-    assert report["recommendation"] == "REVIEW"
-    assert report["scoring_recommendation"] == "APPLY"
+    assert report["assessment_summary"]["status"] == "ESSENTIALS_SUPPORTED"
+    assert not report["provisional"]
+    assert report["recommendation"] == "APPLY"
+    assert report["score"] is None
+    assert report["selection_requirements"]["desirable"]["counts"]["UNKNOWN"] == 1
     assert report["unresolved_requirements"][0]["reason"] == assessment.rationale
 
 
@@ -368,7 +369,7 @@ def test_critical_unknown_is_prominent_even_when_coverage_is_high(priority, bloc
     )
     report = build_fit_report(result=result, requirements=requirements, assessments=assessments)
     assert report["coverage_percent"] > 80
-    assert report["score"] == 100
+    assert report["score"] is None
     assert report["recommendation"] == "REVIEW"
     summary = report["assessment_summary"]
     assert summary["status"] == "INSUFFICIENT_EVIDENCE"

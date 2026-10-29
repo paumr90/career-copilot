@@ -1,5 +1,7 @@
 # Semantic validation and regression diagnostics
 
+The recorded 9/10 diagnostic below used semantic policy v0.2. The current segmented model uses v0.3 and is described in [segmented assessment](segmented-assessment.md); it presents no aggregate score.
+
 The software suite and live semantic diagnostics answer different questions. On 29 October 2026, 224 software tests passed locally. The opt-in live run matched 9 of 10 synthetic reference labels using gpt-5.6-terra, semantic policy v0.2 and provider adapter v0.4. These are single-run diagnostics, not independent expert accuracy estimates.
 
 ## Reference review
