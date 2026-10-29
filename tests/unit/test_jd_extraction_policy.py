@@ -39,7 +39,7 @@ def write_config(
 def test_default_policy_matches_domain_contract() -> None:
     policy = JDExtractionPolicy()
 
-    assert policy.version == "0.1"
+    assert policy.version == "0.2"
 
     assert policy.role == (
         "job_description_requirement_extractor"

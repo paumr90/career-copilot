@@ -22,9 +22,7 @@ class EvidenceRelevanceRanker:
         self,
         policy: EvidenceRankingPolicy | None = None,
     ) -> None:
-        self.policy = (
-            policy or EvidenceRankingPolicy()
-        )
+        self.policy = policy or EvidenceRankingPolicy()
 
     def _normalize_text(
         self,
@@ -42,9 +40,7 @@ class EvidenceRelevanceRanker:
                     "NFKD",
                     text,
                 )
-                if not unicodedata.combining(
-                    character
-                )
+                if not unicodedata.combining(character)
             )
 
         text = text.replace("_", " ")
@@ -60,20 +56,20 @@ class EvidenceRelevanceRanker:
         self,
         value: str,
     ) -> set[str]:
-        normalized = self._normalize_text(
-            value
-        )
+        normalized = self._normalize_text(value)
 
-        return {
+        tokens = {
             token
             for token in normalized.split()
-            if (
-                len(token)
-                >= self.policy.min_token_length
-                and token
-                not in self.policy.stopwords
-            )
+            if (len(token) >= self.policy.min_token_length and token not in self.policy.stopwords)
         }
+
+        # Expand curated multilingual concepts without changing stored facts.
+        for group in self.policy.config.get("concept_groups", []):
+            normalized_group = {self._normalize_text(term) for term in group}
+            if set(normalized.split()) & normalized_group:
+                tokens.update(normalized_group)
+        return tokens
 
     def _normalized_phrase(
         self,
@@ -81,16 +77,14 @@ class EvidenceRelevanceRanker:
     ) -> str:
         tokens = self._tokenize(value)
 
-        return " ".join(
-            sorted(tokens)
-        )
+        return " ".join(sorted(tokens))
 
     def _serialize_value_json(
         self,
         value_json: dict,
     ) -> str:
         return json.dumps(
-            value_json,
+            {key: value for key, value in value_json.items() if not key.startswith("_")},
             sort_keys=True,
             ensure_ascii=False,
             default=str,
@@ -117,63 +111,31 @@ class EvidenceRelevanceRanker:
         requirement: JobRequirement,
         candidate_set: EvidenceCandidateSet,
     ) -> None:
-        if (
-            requirement.requirement_key
-            != candidate_set.requirement_key
-        ):
+        if requirement.requirement_key != candidate_set.requirement_key:
+            raise ValueError("Requirement key does not match EvidenceCandidateSet requirement_key.")
+
+        if requirement.category != candidate_set.requirement_category.value:
             raise ValueError(
-                "Requirement key does not match "
-                "EvidenceCandidateSet requirement_key."
+                "Requirement category does not match EvidenceCandidateSet requirement_category."
             )
 
-        if (
-            requirement.category
-            != candidate_set.requirement_category.value
-        ):
-            raise ValueError(
-                "Requirement category does not match "
-                "EvidenceCandidateSet requirement_category."
-            )
+        for candidate in candidate_set.primary_candidates:
+            if candidate.tier != EvidenceTier.PRIMARY:
+                raise ValueError("primary_candidates must contain only PRIMARY evidence.")
 
-        for candidate in (
-            candidate_set.primary_candidates
-        ):
-            if (
-                candidate.tier
-                != EvidenceTier.PRIMARY
-            ):
-                raise ValueError(
-                    "primary_candidates must contain "
-                    "only PRIMARY evidence."
-                )
-
-        for candidate in (
-            candidate_set.supporting_candidates
-        ):
-            if (
-                candidate.tier
-                != EvidenceTier.SUPPORTING
-            ):
-                raise ValueError(
-                    "supporting_candidates must contain "
-                    "only SUPPORTING evidence."
-                )
+        for candidate in candidate_set.supporting_candidates:
+            if candidate.tier != EvidenceTier.SUPPORTING:
+                raise ValueError("supporting_candidates must contain only SUPPORTING evidence.")
 
         candidate_ids = [
             candidate.profile_fact_id
             for candidate in (
-                candidate_set.primary_candidates
-                + candidate_set.supporting_candidates
+                candidate_set.primary_candidates + candidate_set.supporting_candidates
             )
         ]
 
-        if len(candidate_ids) != len(
-            set(candidate_ids)
-        ):
-            raise ValueError(
-                "EvidenceCandidateSet contains "
-                "duplicate profile_fact_id values."
-            )
+        if len(candidate_ids) != len(set(candidate_ids)):
+            raise ValueError("EvidenceCandidateSet contains duplicate profile_fact_id values.")
 
     def _score_candidate(
         self,
@@ -181,104 +143,60 @@ class EvidenceRelevanceRanker:
         candidate: CareerEvidenceCandidate,
     ) -> RankedEvidenceCandidate:
         requirement_fields = {
-            "requirement_key": (
-                requirement.requirement_key
-            ),
+            "requirement_key": (requirement.requirement_key),
             "description": requirement.description,
-            "evidence_text": (
-                requirement.evidence_text or ""
-            ),
+            "evidence_text": (requirement.evidence_text or ""),
         }
 
         candidate_fields = {
             "subject": candidate.subject,
-            "value_json": (
-                self._serialize_value_json(
-                    candidate.value_json
-                )
-            ),
+            "value_json": (self._serialize_value_json(candidate.value_json)),
         }
 
         relevance_score = 0.0
         matched_terms: set[str] = set()
         exact_phrase_matches: set[str] = set()
 
-        tier_weight = (
-            self.policy.get_tier_weight(
-                candidate.tier
-            )
-        )
+        tier_weight = self.policy.get_tier_weight(candidate.tier)
 
         for (
             requirement_field_name,
             requirement_value,
         ) in requirement_fields.items():
-            requirement_tokens = self._tokenize(
-                requirement_value
-            )
+            requirement_tokens = self._tokenize(requirement_value)
 
             if not requirement_tokens:
                 continue
 
-            requirement_weight = (
-                self.policy.requirement_field_weights[
-                    requirement_field_name
-                ]
-            )
+            requirement_weight = self.policy.requirement_field_weights[requirement_field_name]
 
             for (
                 candidate_field_name,
                 candidate_value,
             ) in candidate_fields.items():
-                candidate_tokens = self._tokenize(
-                    candidate_value
-                )
+                candidate_tokens = self._tokenize(candidate_value)
 
-                candidate_weight = (
-                    self.policy.candidate_field_weights[
-                        candidate_field_name
-                    ]
-                )
+                candidate_weight = self.policy.candidate_field_weights[candidate_field_name]
 
-                overlap = (
-                    requirement_tokens
-                    & candidate_tokens
-                )
+                overlap = requirement_tokens & candidate_tokens
 
                 if overlap:
                     matched_terms.update(overlap)
 
                     relevance_score += (
-                        len(overlap)
-                        * requirement_weight
-                        * candidate_weight
-                        * tier_weight
+                        len(overlap) * requirement_weight * candidate_weight * tier_weight
                     )
 
-                normalized_requirement_phrase = (
-                    self._normalized_phrase(
-                        requirement_value
-                    )
-                )
+                normalized_requirement_phrase = self._normalized_phrase(requirement_value)
 
-                normalized_candidate_phrase = (
-                    self._normalized_phrase(
-                        candidate_value
-                    )
-                )
+                normalized_candidate_phrase = self._normalized_phrase(candidate_value)
 
                 if (
                     normalized_requirement_phrase
-                    and len(
-                        normalized_requirement_phrase.split()
-                    )
-                    >= 2
-                    and normalized_requirement_phrase
-                    in normalized_candidate_phrase
+                    and len(normalized_requirement_phrase.split()) >= 2
+                    and normalized_requirement_phrase in normalized_candidate_phrase
                 ):
-                    exact_phrase_matches.add(
-                        normalized_requirement_phrase
-                    )
+                    exact_phrase_matches.add(normalized_requirement_phrase)
 
                     relevance_score += (
                         self.policy.exact_phrase_bonus
@@ -293,19 +211,13 @@ class EvidenceRelevanceRanker:
                 relevance_score,
                 4,
             ),
-            matched_terms=sorted(
-                matched_terms
-            ),
-            exact_phrase_matches=sorted(
-                exact_phrase_matches
-            ),
+            matched_terms=sorted(matched_terms),
+            exact_phrase_matches=sorted(exact_phrase_matches),
         )
 
     def _fallback_candidates(
         self,
-        candidates: list[
-            CareerEvidenceCandidate
-        ],
+        candidates: list[CareerEvidenceCandidate],
     ) -> list[RankedEvidenceCandidate]:
         ordered_candidates = sorted(
             candidates,
@@ -322,9 +234,7 @@ class EvidenceRelevanceRanker:
                 ),
             )
 
-        selected = ordered_candidates[
-            : self.policy.fallback_max_candidates
-        ]
+        selected = ordered_candidates[: self.policy.fallback_max_candidates]
 
         return [
             RankedEvidenceCandidate(
@@ -347,10 +257,7 @@ class EvidenceRelevanceRanker:
             candidate_set=candidate_set,
         )
 
-        candidates = (
-            candidate_set.primary_candidates
-            + candidate_set.supporting_candidates
-        )
+        candidates = candidate_set.primary_candidates + candidate_set.supporting_candidates
 
         scored_candidates = [
             self._score_candidate(
@@ -361,57 +268,67 @@ class EvidenceRelevanceRanker:
         ]
 
         positive_candidates = [
-            candidate
-            for candidate in scored_candidates
-            if candidate.relevance_score > 0
+            candidate for candidate in scored_candidates if candidate.relevance_score > 0
         ]
 
         ranked_candidates = sorted(
             positive_candidates,
             key=lambda ranked: (
                 -ranked.relevance_score,
-                0
-                if ranked.candidate.tier
-                == EvidenceTier.PRIMARY
-                else 1,
+                0 if ranked.candidate.tier == EvidenceTier.PRIMARY else 1,
                 ranked.candidate.fact_type.value,
                 ranked.candidate.subject.lower(),
-                str(
-                    ranked.candidate.profile_fact_id
-                ),
+                str(ranked.candidate.profile_fact_id),
             ),
-        )[
-            : self.policy.max_ranked_candidates
-        ]
+        )[: self.policy.max_ranked_candidates]
 
         used_fallback = False
 
-        if (
-            not ranked_candidates
-            and candidates
-            and self.policy.fallback_enabled
-        ):
-            ranked_candidates = (
-                self._fallback_candidates(
-                    candidates
-                )
-            )
+        if not ranked_candidates and candidates and self.policy.fallback_enabled:
+            ranked_candidates = self._fallback_candidates(candidates)
 
             used_fallback = True
 
+        # Positive supporting matches must not suppress all primary evidence.
+        minimum = min(
+            self.policy.config.get("minimum_primary_candidates", 0),
+            self.policy.max_ranked_candidates,
+        )
+        primary = sorted(
+            (item for item in scored_candidates if item.candidate.tier == EvidenceTier.PRIMARY),
+            key=lambda item: (-item.relevance_score, self._candidate_sort_key(item.candidate)),
+        )
+        reserved = (
+            primary[:minimum]
+            if not any(item.candidate.tier == EvidenceTier.PRIMARY for item in ranked_candidates)
+            else []
+        )
+        selected_ids = {item.candidate.profile_fact_id for item in ranked_candidates}
+        for item in reserved:
+            if item.candidate.profile_fact_id not in selected_ids:
+                if len(ranked_candidates) >= self.policy.max_ranked_candidates:
+                    reserved_ids = {entry.candidate.profile_fact_id for entry in reserved}
+                    removable = next(
+                        (
+                            index
+                            for index in range(len(ranked_candidates) - 1, -1, -1)
+                            if ranked_candidates[index].candidate.profile_fact_id
+                            not in reserved_ids
+                        ),
+                        None,
+                    )
+                    if removable is None:
+                        break
+                    ranked_candidates.pop(removable)
+                ranked_candidates.append(item)
+                selected_ids.add(item.candidate.profile_fact_id)
+                used_fallback = True
+
         return EvidenceRankingResult(
-            requirement_key=(
-                requirement.requirement_key
-            ),
-            requirement_category=(
-                candidate_set.requirement_category
-            ),
-            retrieval_rule_version=(
-                candidate_set.retrieval_rule_version
-            ),
-            ranking_rule_version=(
-                self.policy.version
-            ),
+            requirement_key=(requirement.requirement_key),
+            requirement_category=(candidate_set.requirement_category),
+            retrieval_rule_version=(candidate_set.retrieval_rule_version),
+            ranking_rule_version=(self.policy.version),
             ranking_method=self.policy.method,
             total_candidate_count=len(candidates),
             ranked_candidates=ranked_candidates,

@@ -10,19 +10,19 @@ The wider product vision covers the application lifecycle. The implemented core 
 
 **Status as of 29 October 2026: backend prototype under active validation.**
 
-The public `main` branch and the latest local development version are currently different:
+This checkout includes the reviewed CLI workflow and isolated test setup:
 
-| Area | Published backend | Latest local development — not yet published |
-|---|---|---|
-| Professional profile | Structured profile import, canonical sources and fact provenance | Versioned reconciliation of profile updates with preserved history |
-| Job descriptions | Opportunity storage, deterministic and OpenAI extraction, verbatim source validation | Broader responsibility extraction and a source-bullet coverage inventory |
-| Evidence | Governed retrieval, lexical ranking and data minimisation | Multilingual relevance expansion and protection against primary evidence being displaced |
-| Assessment | OpenAI semantic proposals checked against deterministic rules | Immediate validation, one corrective retry and an audit of rejected attempts |
-| Fit results | Deterministic scoring and uncertainty handling | Professional score separated from practical conditions, with coverage and provisional status |
-| Review workflow | Business services callable from Python | Local CLI for extraction, explicit requirement review and evaluation |
-| Tests | Unit and PostgreSQL integration tests | 212 tests passing with synthetic data in an automatically isolated PostgreSQL schema |
+| Area | Implemented capability |
+|---|---|
+| Professional profile | Structured facts, canonical sources and versioned provenance |
+| Job descriptions | Governed extraction, verbatim validation, one corrective attempt and source-bullet inventory |
+| Evidence | Governed retrieval, multilingual ranking and minimal evidence projection |
+| Assessment | Semantic proposals, deterministic admissibility checks and rejected-attempt audits |
+| Results | Coverage and critical unknowns first; professional scores separate from practical conditions |
+| Review workflow | CLI for extraction, explicit requirement review and evaluation; rollback by default |
+| Tests | 224 passing unit and PostgreSQL integration tests using synthetic data |
 
-The local test result was verified on **28 October 2026**. It applies to the unpublished development version, not to a fresh checkout of the public branch.
+The suite was verified locally on **29 October 2026**. This is a software-test result, not a measured assessment-accuracy claim. An opt-in live diagnostic matched 9 of 10 synthetic reference labels; the remaining partner/vendor ambiguity is documented in [validation notes](docs/semantic-validation.md).
 
 There is **no product web interface or complete application tracker yet**. The public FastAPI entry point currently exposes a health check; business workflows are implemented as Python services.
 
@@ -63,7 +63,7 @@ A score is useful only alongside its **evidence coverage and unresolved requirem
 - Lexical similarity is a retrieval signal, not proof of professional competence.
 - Recommendations support human review; they do not submit applications or make career decisions.
 
-The local development version also reports salary, residence, vehicle ownership and work arrangements separately from professional fit.
+The report also presents salary, residence, vehicle ownership and work arrangements separately from professional fit.
 
 ## Governance and privacy
 
@@ -96,21 +96,21 @@ The application is a **modular monolith**, organised into profile, opportunities
 
 ```text
 app/
-├── domain/                 # Enums and rule policies
-├── infrastructure/db/      # Database setup
-└── modules/
-    ├── profile/
-    ├── opportunities/
-    ├── fit/
-    ├── governance/
-    └── audit/
+â”œâ”€â”€ domain/                 # Enums and rule policies
+â”œâ”€â”€ infrastructure/db/      # Database setup
+â””â”€â”€ modules/
+    â”œâ”€â”€ profile/
+    â”œâ”€â”€ opportunities/
+    â”œâ”€â”€ fit/
+    â”œâ”€â”€ governance/
+    â””â”€â”€ audit/
 migrations/
 rules/
 seeds/career_master/
 tests/
 ```
 
-## Running the published snapshot locally
+## Running locally
 
 ### 1. Install
 
@@ -153,9 +153,27 @@ The health check is available at `/health`.
 pytest tests/unit
 ```
 
-The public snapshot's integration tests require a migrated, seeded PostgreSQL database. Some tests depend on assumptions about the original profile dataset; the public example seed is not a complete replacement for that dataset.
+For the full suite, run `pytest` with a reachable PostgreSQL database. Tests create a temporary schema, apply migrations, load synthetic fixtures and drop the schema afterward. The database user needs schema-creation permission; set `TEST_DATABASE_URL` for a dedicated test database. Unit-only runs do not use PostgreSQL.
 
-The unpublished local suite removes that dependency by creating a temporary schema, running migrations and loading synthetic fixtures. Its CLI and isolated test setup will be documented as runnable public features when their code is published.
+### 6. Review and evaluate an opportunity
+
+```bash
+python -m app.cli extract --input work/raw-job.local.json --output work/job.local.json
+python -m app.cli review-template --input work/job.local.json --output work/review.local.json
+# Review every requirement, fill reviewer/reviewed_keys and record any amendments.
+python -m app.cli review --input work/review.local.json --output work/approved.local.json
+python -m app.cli evaluate --review work/approved.local.json --output work/result.local.json
+```
+
+Evaluation requires a canonical profile already imported into the database. Do not substitute the author's private data. The CLI does not import a profile automatically. See [workflow and input details](docs/workflow.md) for review fields, audit files and persistence. Evaluation rolls back its opportunity and database audit unless `--save` is supplied; the JSON report remains available.
+
+### 7. Optional semantic diagnostics
+
+```bash
+python -m app.modules.fit.regression --live --output work/semantic-results.local.json
+```
+
+This makes real API calls using synthetic evidence, incurs token usage and reports disagreements without changing reference labels. It runs separately from the offline software suite. See [validation notes](docs/semantic-validation.md).
 
 ## Known limitations
 
@@ -171,9 +189,9 @@ Passing software tests does not establish assessment quality. Real job descripti
 
 ## Next milestones
 
-1. Compare the current workflow across several contrasting job opportunities.
+1. Expand independent reference cases and repeat runs to measure model variability.
 2. Resolve recurring extraction, evidence-selection and assessment discrepancies.
-3. Publish the validated local workflow and self-contained test setup.
+3. Review semantic boundary cases, including external partners versus vendors.
 4. Build a minimal interface for requirement review and evidence inspection.
 5. Add application stages, interviews, follow-ups and archival.
 6. Explore CV support and controlled external integrations.
@@ -182,7 +200,7 @@ The MVP is intentionally kept small and modular so each capability can be tested
 
 ## License
 
-Copyright © 2026 Pau Modolell. All rights reserved.
+Copyright Â© 2026 Pau Modolell. All rights reserved.
 
 This repository is shared publicly for portfolio and educational purposes.
 No permission is granted to reproduce, distribute or create derivative works

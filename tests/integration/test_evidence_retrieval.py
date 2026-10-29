@@ -98,7 +98,7 @@ def test_technology_retrieval_returns_expected_candidate_pool() -> None:
             == RequirementCategory.TECHNOLOGY
         )
 
-        assert result.retrieval_rule_version == "0.1"
+        assert result.retrieval_rule_version == "0.3"
 
         assert len(result.primary_candidates) == 20
         assert len(result.supporting_candidates) == 4

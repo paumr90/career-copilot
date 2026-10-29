@@ -1,4 +1,4 @@
-version: "0.1"
+version: "0.3"
 
 requirement_categories:
 
@@ -20,9 +20,9 @@ requirement_categories:
   SKILL:
     primary_fact_types:
       - skill
-    supporting_fact_types:
       - employment
       - project
+    supporting_fact_types:
       - education
 
   LANGUAGE:
@@ -85,3 +85,7 @@ principles:
   - "GAP requires explicit evidence of non-compliance or contradiction."
   - "Keyword overlap alone is never sufficient to establish MATCH."
   - "UNKNOWN is preferred when available evidence is insufficient to support a conclusion."
+
+conditional_retrieval:
+  own_vehicle_primary_fact_types:
+    - work_preference

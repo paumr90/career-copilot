@@ -207,7 +207,14 @@ class SemanticEvidenceProjectionPolicy:
             )
         )
 
-        return set(primary) | set(supporting)
+        conditional = []
+        if category == RequirementCategory.OTHER:
+            conditional = [
+                ProfileFactType(value) for value in self.retrieval_policy.config.get(
+                    "conditional_retrieval", {}
+                ).get("own_vehicle_primary_fact_types", [])
+            ]
+        return set(primary) | set(supporting) | set(conditional)
 
     @property
     def version(self) -> str:

@@ -1,4 +1,4 @@
-version: "0.1"
+version: "0.2"
 
 role: "job_description_requirement_extractor"
 
@@ -110,7 +110,13 @@ extraction_rules:
   - "Do not omit a requirement because it may reduce candidate fit."
   - "Do not upgrade an ambiguous requirement to MUST_HAVE."
   - "Do not upgrade a MUST_HAVE requirement to blocking without explicit justification."
-  - "Do not treat every responsibility or descriptive bullet as a candidate requirement."
+  - "Extract concrete responsibilities that can be assessed against evidence of capability, separately from explicit candidate qualifications."
+  - "Cover every substantive responsibility section, including business offerings, technology evaluation, partnerships, pilots, talent assessment and talent development when stated."
+  - "Do not replace distinct responsibilities with one generic leadership or market-knowledge requirement."
+  - "Do not extract marketing copy, benefits or duplicated mission summaries as additional capability requirements."
+  - "Keep responsibilities SECONDARY unless mandatory or preferred qualification wording justifies another priority; importance alone is not a formal eligibility condition."
+  - "Split independent assessable capabilities rather than combining them into a single compound requirement."
+  - "Before returning, compare all substantive bullets and sections against the extracted list and recover omissions."
   - "Merge semantically duplicate requirements rather than creating duplicate requirement_key values."
   - "Preserve numerical thresholds exactly when they are stated in the Job Description."
   - "Preserve named technologies, certifications, languages and qualifications exactly enough to retain their meaning."

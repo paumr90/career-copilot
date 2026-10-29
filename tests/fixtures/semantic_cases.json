@@ -1,0 +1,62 @@
+[
+  {
+    "case_id": "vendor_full",
+    "requirement": "Coordinate cross-functional teams and external vendors for project delivery.",
+    "evidence": "Led engineering and operations staff and coordinated contracted software vendors to deliver a systems migration.",
+    "expected_status": "MATCH"
+  },
+  {
+    "case_id": "vendor_partial",
+    "requirement": "Coordinate cross-functional teams and external vendors for project delivery.",
+    "evidence": "Coordinated engineering and operations employees for an internal systems migration; vendor responsibility is not documented.",
+    "expected_status": "PARTIAL_MATCH"
+  },
+  {
+    "case_id": "partner_ambiguous",
+    "requirement": "Coordinate cross-functional teams and external vendors for project delivery.",
+    "evidence": "Coordinated engineering and operations staff and an external technical partner for project execution; the commercial relationship with the partner is unspecified.",
+    "expected_status": "PARTIAL_MATCH"
+  },
+  {
+    "case_id": "model_use_only",
+    "requirement": "Fine-tune or evaluate language models.",
+    "evidence": "Uses an AI writing assistant to draft reports and explores chatbot applications.",
+    "expected_status": "UNKNOWN"
+  },
+  {
+    "case_id": "research_planning_only",
+    "requirement": "Design controlled experiments and prototype research architectures.",
+    "evidence": "Plans consulting projects, budgets and stakeholder workshops.",
+    "expected_status": "UNKNOWN"
+  },
+  {
+    "case_id": "budgets_subset",
+    "requirement": "Manage project scope, budget and schedule.",
+    "evidence": "Owned project budgets and schedules; responsibility for scope is not documented.",
+    "expected_status": "PARTIAL_MATCH"
+  },
+  {
+    "case_id": "language_alternative",
+    "requirement": "Write software in Python or Java.",
+    "evidence": "Implemented and maintained production Java services.",
+    "expected_status": "MATCH"
+  },
+  {
+    "case_id": "concrete_problem_solving",
+    "requirement": "Diagnose and resolve production incidents.",
+    "evidence": "Diagnosed a recurring production failure, identified a timeout as the root cause and deployed a fix that reduced incidents by 70%.",
+    "expected_status": "MATCH"
+  },
+  {
+    "case_id": "concrete_leadership",
+    "requirement": "Lead a multidisciplinary delivery team.",
+    "evidence": "Led a team of engineers and designers, assigned delivery tasks and resolved delivery blockers.",
+    "expected_status": "MATCH"
+  },
+  {
+    "case_id": "negotiation_missing",
+    "requirement": "Negotiate supplier contracts.",
+    "evidence": "Prepared project schedules and internal progress reports.",
+    "expected_status": "UNKNOWN"
+  }
+]

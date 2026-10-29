@@ -34,7 +34,7 @@ EVIDENCE_ID = uuid.UUID(
 
 def build_request() -> SemanticAssessmentRequest:
     return SemanticAssessmentRequest(
-        semantic_rule_version="0.1",
+        semantic_rule_version="0.2",
         retrieval_rule_version="0.1",
         ranking_rule_version="0.1",
         requirement=(
@@ -240,7 +240,7 @@ def test_provider_implements_protocol() -> None:
 
     assert (
         provider.provider_version
-        == "0.1"
+        == "0.4"
     )
 
     assert (
@@ -326,7 +326,7 @@ def test_provider_sends_governed_request() -> None:
     )
 
     assert (
-        '"version": "0.1"'
+        '"version": "0.2"'
         in developer_prompt
     )
 
@@ -403,7 +403,7 @@ def test_provider_returns_telemetry_envelope() -> None:
 
     assert (
         telemetry.provider_version
-        == "0.1"
+        == "0.4"
     )
 
     assert (
@@ -571,3 +571,23 @@ def test_invalid_token_total_is_rejected() -> None:
         provider.propose_with_telemetry(
             request=build_request()
         )
+
+def test_unknown_citations_are_removed_and_audited_without_changing_response():
+    proposal = build_proposal().model_copy(update={"proposed_status": "UNKNOWN"})
+    provider, _ = build_provider(output_parsed=proposal)
+    result = provider.propose_with_telemetry(request=build_request())
+    assert result.proposal.proposed_status == "UNKNOWN"
+    assert result.proposal.evidence == []
+    assert result.proposal.rationale == proposal.rationale
+    assert proposal.evidence
+    assert result.telemetry.discarded_unknown_evidence_ids == [str(EVIDENCE_ID)]
+
+
+def test_unknown_cannot_hide_invented_evidence():
+    proposal = build_proposal().model_copy(update={
+        "proposed_status": "UNKNOWN",
+        "evidence": [ProfileEvidenceReference(profile_fact_id=uuid.uuid4())],
+    })
+    provider, _ = build_provider(output_parsed=proposal)
+    with pytest.raises(ValueError, match="absent from the supplied request"):
+        provider.propose_with_telemetry(request=build_request())

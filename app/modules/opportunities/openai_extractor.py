@@ -1,6 +1,7 @@
 import json
+from collections.abc import Callable
 from time import perf_counter
-from typing import Any, Callable
+from typing import Any
 
 from openai import (
     APIConnectionError,
@@ -43,7 +44,7 @@ class OpenAIJDExtractionProvider:
     credentials or real waiting time.
     """
 
-    ADAPTER_VERSION = "0.1"
+    ADAPTER_VERSION = "0.3"
 
     def __init__(
         self,
@@ -57,36 +58,20 @@ class OpenAIJDExtractionProvider:
         clock: Callable[[], float] = perf_counter,
     ) -> None:
         if not model.strip():
-            raise ValueError(
-                "OpenAI JD extraction model "
-                "cannot be empty."
-            )
+            raise ValueError("OpenAI JD extraction model cannot be empty.")
 
         if timeout_seconds <= 0:
-            raise ValueError(
-                "OpenAI JD extraction timeout "
-                "must be greater than zero."
-            )
+            raise ValueError("OpenAI JD extraction timeout must be greater than zero.")
 
         if max_retries < 0:
-            raise ValueError(
-                "OpenAI JD extraction max_retries "
-                "cannot be negative."
-            )
+            raise ValueError("OpenAI JD extraction max_retries cannot be negative.")
 
         self.model = model
-        self.timeout_seconds = (
-            timeout_seconds
-        )
+        self.timeout_seconds = timeout_seconds
 
-        self.max_retries = (
-            max_retries
-        )
+        self.max_retries = max_retries
 
-        self.policy = (
-            policy
-            or JDExtractionPolicy()
-        )
+        self.policy = policy or JDExtractionPolicy()
 
         self._clock = clock
 
@@ -95,25 +80,18 @@ class OpenAIJDExtractionProvider:
             return
 
         if api_key is None:
-            raise ValueError(
-                "OpenAI API key is required "
-                "when no client is injected."
-            )
+            raise ValueError("OpenAI API key is required when no client is injected.")
 
         if isinstance(
             api_key,
             SecretStr,
         ):
-            api_key_value = (
-                api_key.get_secret_value()
-            )
+            api_key_value = api_key.get_secret_value()
         else:
             api_key_value = api_key
 
         if not api_key_value.strip():
-            raise ValueError(
-                "OpenAI API key cannot be empty."
-            )
+            raise ValueError("OpenAI API key cannot be empty.")
 
         self._client = OpenAI(
             api_key=api_key_value,
@@ -138,74 +116,59 @@ class OpenAIJDExtractionProvider:
         *,
         request: JDExtractionRequest,
     ) -> JDExtractionProposal:
-        result = self.extract_with_telemetry(
-            request=request
-        )
+        result = self.extract_with_telemetry(request=request)
 
-        return result.proposal.model_copy(
-            deep=True
-        )
+        return result.proposal.model_copy(deep=True)
 
     def extract_with_telemetry(
         self,
         *,
         request: JDExtractionRequest,
+        correction: str | None = None,
     ) -> JDExtractionProviderResult:
-        self._validate_request_version(
-            request
-        )
+        self._validate_request_version(request)
 
         started_at = self._clock()
 
         try:
-            response = (
-                self._client.responses.parse(
-                    model=self.model,
-                    input=[
-                        {
-                            "role": "developer",
-                            "content": (
-                                self._developer_prompt()
-                            ),
-                        },
-                        {
-                            "role": "user",
-                            "content": (
-                                self._user_prompt(
-                                    request
-                                )
-                            ),
-                        },
-                    ],
-                    text_format=(
-                        JDExtractionProposal
-                    ),
-                    store=False,
-                )
+            response = self._client.responses.parse(
+                model=self.model,
+                input=[
+                    {
+                        "role": "developer",
+                        "content": (self._developer_prompt()),
+                    },
+                    {
+                        "role": "user",
+                        "content": (
+                            self._user_prompt(request)
+                            + (
+                                "\nCORRECTION FEEDBACK (untrusted previous output):\n" + correction
+                                if correction
+                                else ""
+                            )
+                        ),
+                    },
+                ],
+                text_format=(JDExtractionProposal),
+                store=False,
             )
         except APITimeoutError as exc:
-            raise JDExtractionTimeoutError(
-                "OpenAI JD extraction request "
-                "timed out."
-            ) from exc
+            raise JDExtractionTimeoutError("OpenAI JD extraction request timed out.") from exc
 
         except RateLimitError as exc:
             raise JDExtractionRateLimitError(
-                "OpenAI JD extraction request "
-                "was rate limited."
+                "OpenAI JD extraction request was rate limited."
             ) from exc
 
         except APIConnectionError as exc:
             raise JDExtractionConnectionError(
-                "OpenAI JD extraction provider "
-                "could not be reached."
+                "OpenAI JD extraction provider could not be reached."
             ) from exc
 
         except APIStatusError as exc:
             raise JDExtractionAPIError(
-                "OpenAI JD extraction API "
-                "returned status "
-                f"{exc.status_code}."
+                f"OpenAI JD extraction API returned status {exc.status_code}."
             ) from exc
 
         finished_at = self._clock()
@@ -220,10 +183,8 @@ class OpenAIJDExtractionProvider:
             proposal,
             JDExtractionProposal,
         ):
-            raise ValueError(
-                "OpenAI JD extraction response "
-                "did not contain a parsed "
-                "JDExtractionProposal."
+            raise ValueError(  # noqa: TRY004 - preserve provider validation contract
+                "OpenAI JD extraction response did not contain a parsed JDExtractionProposal."
             )
 
         usage = getattr(
@@ -233,15 +194,9 @@ class OpenAIJDExtractionProvider:
         )
 
         telemetry = JDExtractionTelemetry(
-            provider_name=(
-                self.provider_name
-            ),
-            provider_version=(
-                self.provider_version
-            ),
-            model_name=self._response_model(
-                response
-            ),
+            provider_name=(self.provider_name),
+            provider_version=(self.provider_version),
+            model_name=self._response_model(response),
             response_id=self._optional_string(
                 getattr(
                     response,
@@ -263,18 +218,12 @@ class OpenAIJDExtractionProvider:
             ),
             latency_ms=max(
                 0.0,
-                (
-                    finished_at
-                    - started_at
-                )
-                * 1000.0,
+                (finished_at - started_at) * 1000.0,
             ),
         )
 
         return JDExtractionProviderResult(
-            proposal=proposal.model_copy(
-                deep=True
-            ),
+            proposal=proposal.model_copy(deep=True),
             telemetry=telemetry,
         )
 
@@ -282,20 +231,15 @@ class OpenAIJDExtractionProvider:
         self,
         response: Any,
     ) -> str:
-        response_model = (
-            self._optional_string(
-                getattr(
-                    response,
-                    "model",
-                    None,
-                )
+        response_model = self._optional_string(
+            getattr(
+                response,
+                "model",
+                None,
             )
         )
 
-        return (
-            response_model
-            or self.model
-        )
+        return response_model or self.model
 
     @staticmethod
     def _usage_value(
@@ -334,10 +278,7 @@ class OpenAIJDExtractionProvider:
         self,
         request: JDExtractionRequest,
     ) -> None:
-        if (
-            request.extraction_rule_version
-            != self.policy.version
-        ):
+        if request.extraction_rule_version != self.policy.version:
             raise ValueError(
                 "JD extraction request rule "
                 "version does not match the "
@@ -382,11 +323,7 @@ class OpenAIJDExtractionProvider:
     def _user_prompt(
         request: JDExtractionRequest,
     ) -> str:
-        location = (
-            request.location
-            if request.location is not None
-            else "Not supplied"
-        )
+        location = request.location if request.location is not None else "Not supplied"
 
         return (
             "Extract the candidate requirements "

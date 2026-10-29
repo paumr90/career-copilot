@@ -80,3 +80,15 @@ class OpportunityService:
         session.flush()
 
         return source, opportunity, requirements
+    def create_from_review(self, session: Session, *, review):
+        from app.modules.opportunities.review import RequirementReviewService
+        RequirementReviewService().verify(review)
+        source, opportunity, requirements = self.create_from_job_description(
+            session=session, job_description=review.reviewed,
+        )
+        source.metadata_json = {
+            **source.metadata_json,
+            "requirement_review": review.model_dump(mode="json"),
+        }
+        session.flush()
+        return source, opportunity, requirements

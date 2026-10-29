@@ -33,7 +33,7 @@ def test_default_policy_loads() -> None:
         SemanticEvidenceProjectionPolicy()
     )
 
-    assert policy.version == "0.1"
+    assert policy.version == "0.2"
 
 
 def test_technology_skill_fields_are_minimized() -> None:

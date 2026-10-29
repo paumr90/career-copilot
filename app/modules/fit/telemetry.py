@@ -10,6 +10,9 @@ from app.modules.fit.schemas import (
 
 
 class SemanticAssessmentTelemetry(BaseModel):
+    # Preserve discarded provider citations in the audit telemetry.
+    discarded_unknown_evidence_ids: list[str] = Field(default_factory=list)
+
     provider_name: str = Field(
         min_length=1,
         max_length=100,
@@ -52,16 +55,12 @@ class SemanticAssessmentTelemetry(BaseModel):
     @model_validator(mode="after")
     def validate_token_total(
         self,
-    ) -> "SemanticAssessmentTelemetry":
+    ) -> SemanticAssessmentTelemetry:
         if (
             self.input_tokens is not None
             and self.output_tokens is not None
             and self.total_tokens is not None
-            and (
-                self.input_tokens
-                + self.output_tokens
-                != self.total_tokens
-            )
+            and (self.input_tokens + self.output_tokens != self.total_tokens)
         ):
             raise ValueError(
                 "Semantic assessment total_tokens "
@@ -73,9 +72,7 @@ class SemanticAssessmentTelemetry(BaseModel):
         return self
 
 
-class SemanticAssessmentProviderResult(
-    BaseModel
-):
+class SemanticAssessmentProviderResult(BaseModel):
     proposal: RequirementAssessmentProposal
 
     telemetry: SemanticAssessmentTelemetry
