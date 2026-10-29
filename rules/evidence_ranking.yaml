@@ -1,4 +1,4 @@
-version: "0.1"
+version: "0.2"
 
 method: "deterministic_lexical_shortlisting"
 
@@ -77,3 +77,12 @@ principles:
   - "Absence of ranked evidence never implies GAP."
   - "Semantic equivalence, synonyms and transferable experience must be handled by the later assessment layer."
   - "Ranking method and rule version must be carried forward for auditability."
+# Concept expansion affects retrieval relevance, never fit decisions.
+minimum_primary_candidates: 2
+concept_groups:
+  - [presales, prevenda, preventa, proposals, propuestas, propostes, tenders, licitaciones]
+  - [leadership, lideratge, liderazgo, coordination, coordinacio, coordinacion]
+  - [clients, clientes, clients, customer, discovery]
+  - [ai, ia, genai, llm, agents, artificial]
+  - [transformation, transformacion, transformacio]
+  - [management, gestion, gestio, managing]

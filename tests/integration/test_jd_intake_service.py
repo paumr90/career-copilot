@@ -242,7 +242,7 @@ def test_valid_provider_output_creates_and_audits_canonical_opportunity() -> Non
 
         assert (
             extraction_evaluation.ruleset_version
-            == "0.1"
+            == "0.2"
         )
 
         assert (
@@ -281,7 +281,7 @@ def test_valid_provider_output_creates_and_audits_canonical_opportunity() -> Non
         )
 
         assert request_audit == {
-            "extraction_rule_version": "0.1",
+            "extraction_rule_version": "0.2",
             "company": raw_job.company,
             "role_title": raw_job.role_title,
             "location": raw_job.location,
@@ -310,7 +310,7 @@ def test_valid_provider_output_creates_and_audits_canonical_opportunity() -> Non
             extraction_evaluation
             .input_json["rules_snapshot"]
             ["jd_extraction"]["version"]
-            == "0.1"
+            == "0.2"
         )
 
         assert (

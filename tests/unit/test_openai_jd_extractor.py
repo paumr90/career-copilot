@@ -18,7 +18,6 @@ from app.modules.opportunities.schemas import (
     RawJobDescriptionInput,
 )
 
-
 RAW_JD = (
     "We are looking for a Program Manager. "
     "Candidates must have at least 5 years "
@@ -32,40 +31,24 @@ def build_raw_job() -> RawJobDescriptionInput:
         role_title="Program Manager",
         location="Barcelona",
         raw_text=RAW_JD,
-        source_url=(
-            "https://example.com/jobs/"
-            "program-manager"
-        ),
+        source_url=("https://example.com/jobs/program-manager"),
     )
 
 
 def build_request():
-    return (
-        JDExtractionRequestBuilder()
-        .build(
-            raw_job=build_raw_job()
-        )
-    )
+    return JDExtractionRequestBuilder().build(raw_job=build_raw_job())
 
 
 def build_proposal() -> JDExtractionProposal:
     return JDExtractionProposal(
         requirements=[
             JobRequirementInput(
-                requirement_key=(
-                    "project_management_experience"
-                ),
-                description=(
-                    "At least 5 years of project "
-                    "management experience"
-                ),
+                requirement_key=("project_management_experience"),
+                description=("At least 5 years of project management experience"),
                 priority="MUST_HAVE",
                 category="EXPERIENCE",
                 blocking=False,
-                evidence_text=(
-                    "must have at least 5 years "
-                    "of project management experience"
-                ),
+                evidence_text=("must have at least 5 years of project management experience"),
             )
         ]
     )
@@ -79,9 +62,7 @@ class FakeClock:
         self._values = iter(values)
 
     def __call__(self) -> float:
-        return next(
-            self._values
-        )
+        return next(self._values)
 
 
 class FakeResponses:
@@ -89,12 +70,8 @@ class FakeResponses:
         self,
         *,
         output_parsed,
-        response_id: str | None = (
-            "resp_test_123"
-        ),
-        model: str | None = (
-            "test-model-resolved"
-        ),
+        response_id: str | None = ("resp_test_123"),
+        model: str | None = ("test-model-resolved"),
         usage=None,
     ) -> None:
         self.output_parsed = output_parsed
@@ -120,9 +97,7 @@ class FakeResponses:
         self.last_call = kwargs
 
         return SimpleNamespace(
-            output_parsed=(
-                self.output_parsed
-            ),
+            output_parsed=(self.output_parsed),
             id=self.response_id,
             model=self.model,
             usage=self.usage,
@@ -134,12 +109,8 @@ class FakeOpenAIClient:
         self,
         *,
         output_parsed,
-        response_id: str | None = (
-            "resp_test_123"
-        ),
-        model: str | None = (
-            "test-model-resolved"
-        ),
+        response_id: str | None = ("resp_test_123"),
+        model: str | None = ("test-model-resolved"),
         usage=None,
     ) -> None:
         self.responses = FakeResponses(
@@ -153,12 +124,8 @@ class FakeOpenAIClient:
 def build_provider(
     *,
     output_parsed=None,
-    response_id: str | None = (
-        "resp_test_123"
-    ),
-    response_model: str | None = (
-        "test-model-resolved"
-    ),
+    response_id: str | None = ("resp_test_123"),
+    response_model: str | None = ("test-model-resolved"),
     usage=None,
     clock=None,
 ):
@@ -180,9 +147,7 @@ def build_provider(
     if clock is not None:
         kwargs["clock"] = clock
 
-    provider = OpenAIJDExtractionProvider(
-        **kwargs
-    )
+    provider = OpenAIJDExtractionProvider(**kwargs)
 
     return provider, client
 
@@ -195,20 +160,11 @@ def test_provider_implements_protocol() -> None:
         JDExtractionProvider,
     )
 
-    assert (
-        provider.provider_name
-        == "openai"
-    )
+    assert provider.provider_name == "openai"
 
-    assert (
-        provider.provider_version
-        == "0.1"
-    )
+    assert provider.provider_version == "0.3"
 
-    assert (
-        provider.model_name
-        == "test-model"
-    )
+    assert provider.model_name == "test-model"
 
 
 def test_provider_uses_structured_output_contract() -> None:
@@ -216,9 +172,7 @@ def test_provider_uses_structured_output_contract() -> None:
 
     request = build_request()
 
-    result = provider.extract(
-        request=request
-    )
+    result = provider.extract(request=request)
 
     assert result == build_proposal()
 
@@ -226,23 +180,15 @@ def test_provider_uses_structured_output_contract() -> None:
 
     assert call is not None
 
-    assert (
-        call["model"]
-        == "test-model"
-    )
+    assert call["model"] == "test-model"
 
-    assert (
-        call["text_format"]
-        is JDExtractionProposal
-    )
+    assert call["text_format"] is JDExtractionProposal
 
 
 def test_provider_disables_response_storage() -> None:
     provider, client = build_provider()
 
-    provider.extract(
-        request=build_request()
-    )
+    provider.extract(request=build_request())
 
     call = client.responses.last_call
 
@@ -256,9 +202,7 @@ def test_provider_sends_governed_request() -> None:
 
     request = build_request()
 
-    provider.extract(
-        request=request
-    )
+    provider.extract(request=request)
 
     call = client.responses.last_call
 
@@ -266,38 +210,19 @@ def test_provider_sends_governed_request() -> None:
 
     assert len(messages) == 2
 
-    assert (
-        messages[0]["role"]
-        == "developer"
-    )
+    assert messages[0]["role"] == "developer"
 
-    assert (
-        messages[1]["role"]
-        == "user"
-    )
+    assert messages[1]["role"] == "user"
 
-    developer_prompt = (
-        messages[0]["content"]
-    )
+    developer_prompt = messages[0]["content"]
 
-    user_prompt = (
-        messages[1]["content"]
-    )
+    user_prompt = messages[1]["content"]
 
-    assert (
-        "UNTRUSTED DATA"
-        in developer_prompt
-    )
+    assert "UNTRUSTED DATA" in developer_prompt
 
-    assert (
-        '"version": "0.1"'
-        in developer_prompt
-    )
+    assert '"version": "0.2"' in developer_prompt
 
-    assert (
-        request.raw_text
-        in user_prompt
-    )
+    assert request.raw_text in user_prompt
 
 
 def test_provider_never_receives_source_url() -> None:
@@ -305,45 +230,31 @@ def test_provider_never_receives_source_url() -> None:
 
     request = build_request()
 
-    provider.extract(
-        request=request
-    )
+    provider.extract(request=request)
 
     call = client.responses.last_call
 
-    complete_prompt = str(
-        call["input"]
-    )
+    complete_prompt = str(call["input"])
 
-    assert (
-        "https://example.com"
-        not in complete_prompt
-    )
+    assert "https://example.com" not in complete_prompt
 
 
 def test_provider_returns_deep_copy() -> None:
     original = build_proposal()
 
-    client = FakeOpenAIClient(
-        output_parsed=original
-    )
+    client = FakeOpenAIClient(output_parsed=original)
 
     provider = OpenAIJDExtractionProvider(
         model="test-model",
         client=client,
     )
 
-    result = provider.extract(
-        request=build_request()
-    )
+    result = provider.extract(request=build_request())
 
     assert result == original
     assert result is not original
 
-    assert (
-        result.requirements[0]
-        is not original.requirements[0]
-    )
+    assert result.requirements[0] is not original.requirements[0]
 
 
 def test_provider_returns_telemetry_envelope() -> None:
@@ -354,43 +265,24 @@ def test_provider_returns_telemetry_envelope() -> None:
         )
     )
 
-    result = (
-        provider.extract_with_telemetry(
-            request=build_request()
-        )
-    )
+    result = provider.extract_with_telemetry(request=build_request())
 
     assert isinstance(
         result,
         JDExtractionProviderResult,
     )
 
-    assert (
-        result.proposal
-        == build_proposal()
-    )
+    assert result.proposal == build_proposal()
 
     telemetry = result.telemetry
 
-    assert (
-        telemetry.provider_name
-        == "openai"
-    )
+    assert telemetry.provider_name == "openai"
 
-    assert (
-        telemetry.provider_version
-        == "0.1"
-    )
+    assert telemetry.provider_version == "0.3"
 
-    assert (
-        telemetry.model_name
-        == "test-model-resolved"
-    )
+    assert telemetry.model_name == "test-model-resolved"
 
-    assert (
-        telemetry.response_id
-        == "resp_test_123"
-    )
+    assert telemetry.response_id == "resp_test_123"
 
     assert telemetry.input_tokens == 120
     assert telemetry.output_tokens == 30
@@ -412,11 +304,7 @@ def test_missing_usage_is_allowed() -> None:
         ),
     )
 
-    result = (
-        provider.extract_with_telemetry(
-            request=build_request()
-        )
-    )
+    result = provider.extract_with_telemetry(request=build_request())
 
     telemetry = result.telemetry
 
@@ -434,50 +322,27 @@ def test_response_model_falls_back_to_requested_model() -> None:
         ),
     )
 
-    result = (
-        provider.extract_with_telemetry(
-            request=build_request()
-        )
-    )
+    result = provider.extract_with_telemetry(request=build_request())
 
-    assert (
-        result.telemetry.model_name
-        == "test-model"
-    )
+    assert result.telemetry.model_name == "test-model"
 
 
 def test_rule_version_mismatch_is_rejected_before_api_call() -> None:
     provider, client = build_provider()
 
-    request = build_request().model_copy(
-        update={
-            "extraction_rule_version": (
-                "999.0"
-            )
-        }
-    )
+    request = build_request().model_copy(update={"extraction_rule_version": ("999.0")})
 
     with pytest.raises(
         ValueError,
-        match=(
-            "request rule version does not "
-            "match the provider policy version"
-        ),
+        match=("request rule version does not match the provider policy version"),
     ):
-        provider.extract(
-            request=request
-        )
+        provider.extract(request=request)
 
-    assert (
-        client.responses.last_call
-        is None
-    )
+    assert client.responses.last_call is None
 
 
 def test_missing_parsed_output_is_rejected() -> None:
-    client = FakeOpenAIClient(
-        output_parsed=None
-    )
+    client = FakeOpenAIClient(output_parsed=None)
 
     provider = OpenAIJDExtractionProvider(
         model="test-model",
@@ -486,22 +351,15 @@ def test_missing_parsed_output_is_rejected() -> None:
 
     with pytest.raises(
         ValueError,
-        match=(
-            "did not contain a parsed "
-            "JDExtractionProposal"
-        ),
+        match=("did not contain a parsed JDExtractionProposal"),
     ):
-        provider.extract(
-            request=build_request()
-        )
+        provider.extract(request=build_request())
 
 
 def test_real_client_requires_api_key() -> None:
     with pytest.raises(
         ValueError,
-        match=(
-            "OpenAI API key is required"
-        ),
+        match=("OpenAI API key is required"),
     ):
         OpenAIJDExtractionProvider(
             model="test-model",
@@ -511,15 +369,22 @@ def test_real_client_requires_api_key() -> None:
 def test_empty_model_is_rejected() -> None:
     with pytest.raises(
         ValueError,
-        match=(
-            "model cannot be empty"
-        ),
+        match=("model cannot be empty"),
     ):
         OpenAIJDExtractionProvider(
             model="   ",
-            client=FakeOpenAIClient(
-                output_parsed=(
-                    build_proposal()
-                )
-            ),
+            client=FakeOpenAIClient(output_parsed=(build_proposal())),
         )
+
+
+def test_correction_reuses_original_source_and_keeps_storage_disabled():
+    provider, client = build_provider()
+    request = build_request()
+    provider.extract_with_telemetry(
+        request=request, correction="Repair the rejected literal quotation"
+    )
+    call = client.responses.last_call
+    assert request.raw_text in call["input"][1]["content"]
+    assert "Repair the rejected literal quotation" in call["input"][1]["content"]
+    assert "untrusted previous output" in call["input"][1]["content"]
+    assert call["store"] is False

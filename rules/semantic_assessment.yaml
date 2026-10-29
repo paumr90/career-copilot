@@ -1,4 +1,4 @@
-version: "0.1"
+version: "0.2"
 
 role: "requirement_assessment_proposer"
 
@@ -60,7 +60,24 @@ forbidden:
 principles:
   - "The semantic assessor proposes; deterministic validation decides whether the proposal is admissible."
   - "UNKNOWN is preferred over unsupported certainty."
-  - "Transferable experience may justify PARTIAL_MATCH when direct equivalence is not established."
+  - "PARTIAL_MATCH requires cited evidence of a concrete subset of the requested activity, domain or deliverable. Mere thematic proximity, technology exposure or general transferable ability is UNKNOWN."
   - "MATCH requires evidence that directly or defensibly satisfies the requirement."
   - "GAP requires affirmative evidence of contradiction, explicit non-compliance or measurable shortfall."
   - "The assessor must explain its reasoning using only the supplied requirement and ranked Career Master evidence."
+calibration_examples:
+  - requirement: "Train or evaluate language models"
+    evidence: "Uses a chatbot to draft documents"
+    status: "UNKNOWN"
+    reason: "Tool use does not demonstrate model training or evaluation."
+  - requirement: "Design and execute controlled experiments"
+    evidence: "Coordinates project plans and budgets"
+    status: "UNKNOWN"
+    reason: "Project planning does not establish experimentation."
+  - requirement: "Manage scope, budgets and schedules"
+    evidence: "Owned project budgets and schedules"
+    status: "PARTIAL_MATCH"
+    reason: "Two concrete requested components are evidenced; scope is unconfirmed."
+  - requirement: "Program in Python or Java"
+    evidence: "Implemented production services in Java"
+    status: "MATCH"
+    reason: "One explicit alternative fully satisfies the requirement."

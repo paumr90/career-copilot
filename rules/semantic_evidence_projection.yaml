@@ -1,4 +1,4 @@
-version: "0.1"
+version: "0.2"
 
 principles:
   - "Only fields necessary to assess the current requirement category may leave the local Career Master boundary."
@@ -191,6 +191,8 @@ requirement_categories:
 
     work_preference:
       - preferred_location
+      - current_city
+      - current_province
       - travel_acceptable
 
   WORK_MODE:
@@ -198,6 +200,8 @@ requirement_categories:
     work_preference:
       - preferred_location
       - preferred_office_days_per_week
+      - onsite_days_acceptance
+      - owns_vehicle
       - remote_acceptable
       - travel_acceptable
 
@@ -208,6 +212,9 @@ requirement_categories:
       - variable_compensation_expected
 
   OTHER:
+
+    work_preference:
+      - owns_vehicle
 
     professional_summary:
       - summary

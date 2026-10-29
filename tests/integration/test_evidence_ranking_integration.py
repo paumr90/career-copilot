@@ -104,12 +104,12 @@ def test_real_career_master_candidates_can_be_ranked() -> None:
 
         assert (
             result.retrieval_rule_version
-            == "0.1"
+            == "0.3"
         )
 
         assert (
             result.ranking_rule_version
-            == "0.1"
+            == "0.2"
         )
 
         assert result.ranking_method == (

@@ -1,0 +1,488 @@
+[
+  {
+    "fact_type": "employment",
+    "subject": "Example Employer 0",
+    "value": {
+      "role": "Project Manager",
+      "period": "2023-present",
+      "responsibilities": [
+        "Project management and digital transformation",
+        "Client discovery and presales proposals",
+        "Cross-functional leadership and AI implementation"
+      ],
+      "knowledge": [
+        "JIRA",
+        "SQL"
+      ]
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "employment",
+    "subject": "Example Employer 1",
+    "value": {
+      "role": "Project Manager",
+      "period": "2023-present",
+      "responsibilities": [
+        "Project management and digital transformation",
+        "Client discovery and presales proposals",
+        "Cross-functional leadership and AI implementation"
+      ],
+      "knowledge": [
+        "JIRA",
+        "SQL"
+      ]
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "employment",
+    "subject": "Example Employer 2",
+    "value": {
+      "role": "Project Manager",
+      "period": "2023-present",
+      "responsibilities": [
+        "Project management and digital transformation",
+        "Client discovery and presales proposals",
+        "Cross-functional leadership and AI implementation"
+      ],
+      "knowledge": [
+        "JIRA",
+        "SQL"
+      ]
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "employment",
+    "subject": "Example Employer 3",
+    "value": {
+      "role": "Project Manager",
+      "period": "2023-present",
+      "responsibilities": [
+        "Project management and digital transformation",
+        "Client discovery and presales proposals",
+        "Cross-functional leadership and AI implementation"
+      ],
+      "knowledge": [
+        "JIRA",
+        "SQL"
+      ]
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "employment",
+    "subject": "Example Employer 4",
+    "value": {
+      "role": "Project Manager",
+      "period": "2023-present",
+      "responsibilities": [
+        "Project management and digital transformation",
+        "Client discovery and presales proposals",
+        "Cross-functional leadership and AI implementation"
+      ],
+      "knowledge": [
+        "JIRA",
+        "SQL"
+      ]
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "employment",
+    "subject": "Example Employer 5",
+    "value": {
+      "role": "Project Manager",
+      "period": "2023-present",
+      "responsibilities": [
+        "Project management and digital transformation",
+        "Client discovery and presales proposals",
+        "Cross-functional leadership and AI implementation"
+      ],
+      "knowledge": [
+        "JIRA",
+        "SQL"
+      ]
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "employment",
+    "subject": "Example Employer 6",
+    "value": {
+      "role": "Project Manager",
+      "period": "2023-present",
+      "responsibilities": [
+        "Project management and digital transformation",
+        "Client discovery and presales proposals",
+        "Cross-functional leadership and AI implementation"
+      ],
+      "knowledge": [
+        "JIRA",
+        "SQL"
+      ]
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "project",
+    "subject": "Example Project 0",
+    "value": {
+      "focus": [
+        "Digital transformation",
+        "AI",
+        "project management"
+      ],
+      "responsibilities": [
+        "Managing complex projects and project teams"
+      ]
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "project",
+    "subject": "Example Project 1",
+    "value": {
+      "focus": [
+        "Digital transformation",
+        "AI",
+        "project management"
+      ],
+      "responsibilities": [
+        "Managing complex projects and project teams"
+      ]
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "project",
+    "subject": "Example Project 2",
+    "value": {
+      "focus": [
+        "Digital transformation",
+        "AI",
+        "project management"
+      ],
+      "responsibilities": [
+        "Managing complex projects and project teams"
+      ]
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "project",
+    "subject": "Example Project 3",
+    "value": {
+      "focus": [
+        "Digital transformation",
+        "AI",
+        "project management"
+      ],
+      "responsibilities": [
+        "Managing complex projects and project teams"
+      ]
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "project",
+    "subject": "Example Project 4",
+    "value": {
+      "focus": [
+        "Digital transformation",
+        "AI",
+        "project management"
+      ],
+      "responsibilities": [
+        "Managing complex projects and project teams"
+      ]
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "project",
+    "subject": "Example Project 5",
+    "value": {
+      "focus": [
+        "Digital transformation",
+        "AI",
+        "project management"
+      ],
+      "responsibilities": [
+        "Managing complex projects and project teams"
+      ]
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "project",
+    "subject": "Example Project 6",
+    "value": {
+      "focus": [
+        "Digital transformation",
+        "AI",
+        "project management"
+      ],
+      "responsibilities": [
+        "Managing complex projects and project teams"
+      ]
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "skill",
+    "subject": "Example Skill 0",
+    "value": {
+      "level": "EXPERIENCE",
+      "areas": [
+        "Project management",
+        "Digital transformation",
+        "JIRA",
+        "AI governance"
+      ]
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "skill",
+    "subject": "Example Skill 1",
+    "value": {
+      "level": "EXPERIENCE",
+      "areas": [
+        "Project management",
+        "Digital transformation",
+        "JIRA",
+        "AI governance"
+      ]
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "skill",
+    "subject": "Example Skill 2",
+    "value": {
+      "level": "EXPERIENCE",
+      "areas": [
+        "Project management",
+        "Digital transformation",
+        "JIRA",
+        "AI governance"
+      ]
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "skill",
+    "subject": "Example Skill 3",
+    "value": {
+      "level": "EXPERIENCE",
+      "areas": [
+        "Project management",
+        "Digital transformation",
+        "JIRA",
+        "AI governance"
+      ]
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "skill",
+    "subject": "Example Skill 4",
+    "value": {
+      "level": "EXPERIENCE",
+      "areas": [
+        "Project management",
+        "Digital transformation",
+        "JIRA",
+        "AI governance"
+      ]
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "skill",
+    "subject": "Example Skill 5",
+    "value": {
+      "level": "EXPERIENCE",
+      "areas": [
+        "Project management",
+        "Digital transformation",
+        "JIRA",
+        "AI governance"
+      ]
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "education",
+    "subject": "Example University 0",
+    "value": {
+      "qualification": "Engineering degree",
+      "period": "2010-2014"
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "education",
+    "subject": "Example University 1",
+    "value": {
+      "qualification": "Engineering degree",
+      "period": "2010-2014"
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "education",
+    "subject": "Example University 2",
+    "value": {
+      "qualification": "Engineering degree",
+      "period": "2010-2014"
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "certification",
+    "subject": "Example Certificate",
+    "value": {
+      "status": "Confirmed"
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "professional_summary",
+    "subject": "Example Profile",
+    "value": {
+      "summary": "Consultant bridging business and technology through digital transformation"
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "positioning",
+    "subject": "Example Positioning",
+    "value": {
+      "statement": "Business technology bridge",
+      "differentiators": [
+        "AI",
+        "project management"
+      ]
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "career_objective",
+    "subject": "Example Objective",
+    "value": {
+      "objective": "Transformation programme management"
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "language",
+    "subject": "English",
+    "value": {
+      "proficiency": "C2"
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "language",
+    "subject": "Catalan",
+    "value": {
+      "proficiency": "C2"
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "language",
+    "subject": "Spanish",
+    "value": {
+      "proficiency": "C2"
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "compensation_preference",
+    "subject": "Example Compensation",
+    "value": {
+      "minimum_fixed_salary_eur": 60000,
+      "variable_compensation_expected": true
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  },
+  {
+    "fact_type": "work_preference",
+    "subject": "Example Location",
+    "value": {
+      "preferred_location": "Barcelona area",
+      "preferred_office_days_per_week": 2,
+      "remote_acceptable": true,
+      "travel_acceptable": true
+    },
+    "evidence_state": "CONFIRMED",
+    "valid_from": null,
+    "valid_to": null
+  }
+]

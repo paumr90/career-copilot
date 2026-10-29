@@ -29,9 +29,7 @@ class CareerEvidenceRetriever:
         self,
         policy: EvidenceRetrievalPolicy | None = None,
     ) -> None:
-        self.policy = (
-            policy or EvidenceRetrievalPolicy()
-        )
+        self.policy = policy or EvidenceRetrievalPolicy()
 
     def _load_candidates(
         self,
@@ -43,31 +41,20 @@ class CareerEvidenceRetriever:
         if not fact_types:
             return []
 
-        fact_type_values = [
-            fact_type.value
-            for fact_type in fact_types
-        ]
+        fact_type_values = [fact_type.value for fact_type in fact_types]
 
         facts = session.scalars(
             select(ProfileFact)
             .join(
                 Source,
-                ProfileFact.source_id
-                == Source.source_id,
+                ProfileFact.source_id == Source.source_id,
             )
             .where(
-                ProfileFact.fact_type.in_(
-                    fact_type_values
-                ),
-                ProfileFact.evidence_state
-                == EvidenceState.CONFIRMED.value,
-                ProfileFact.superseded_by.is_(
-                    None
-                ),
-                Source.source_type
-                == SourceType.PROFILE.value,
-                Source.authority_level
-                == "CANONICAL_PROFILE",
+                ProfileFact.fact_type.in_(fact_type_values),
+                ProfileFact.evidence_state == EvidenceState.CONFIRMED.value,
+                ProfileFact.superseded_by.is_(None),
+                Source.source_type == SourceType.PROFILE.value,
+                Source.authority_level == "CANONICAL_PROFILE",
                 Source.immutable.is_(True),
             )
             .order_by(
@@ -80,9 +67,7 @@ class CareerEvidenceRetriever:
         return [
             CareerEvidenceCandidate(
                 profile_fact_id=fact.fact_id,
-                fact_type=ProfileFactType(
-                    fact.fact_type
-                ),
+                fact_type=ProfileFactType(fact.fact_type),
                 subject=fact.subject,
                 value_json=fact.value_json,
                 tier=tier,
@@ -95,50 +80,34 @@ class CareerEvidenceRetriever:
         session: Session,
         requirement: JobRequirement,
     ) -> EvidenceCandidateSet:
-        category = RequirementCategory(
-            requirement.category
+        category = RequirementCategory(requirement.category)
+
+        primary_fact_types = self.policy.get_primary_fact_types(category)
+
+        supporting_fact_types = self.policy.get_supporting_fact_types(category)
+
+        from app.modules.fit.compatibility import is_vehicle_requirement
+
+        if is_vehicle_requirement(requirement):
+            primary_fact_types = [ProfileFactType.WORK_PREFERENCE]
+            supporting_fact_types = []
+
+        primary_candidates = self._load_candidates(
+            session,
+            fact_types=primary_fact_types,
+            tier=EvidenceTier.PRIMARY,
         )
 
-        primary_fact_types = (
-            self.policy.get_primary_fact_types(
-                category
-            )
-        )
-
-        supporting_fact_types = (
-            self.policy.get_supporting_fact_types(
-                category
-            )
-        )
-
-        primary_candidates = (
-            self._load_candidates(
-                session,
-                fact_types=primary_fact_types,
-                tier=EvidenceTier.PRIMARY,
-            )
-        )
-
-        supporting_candidates = (
-            self._load_candidates(
-                session,
-                fact_types=supporting_fact_types,
-                tier=EvidenceTier.SUPPORTING,
-            )
+        supporting_candidates = self._load_candidates(
+            session,
+            fact_types=supporting_fact_types,
+            tier=EvidenceTier.SUPPORTING,
         )
 
         return EvidenceCandidateSet(
-            requirement_key=(
-                requirement.requirement_key
-            ),
+            requirement_key=(requirement.requirement_key),
             requirement_category=category,
-            retrieval_rule_version=(
-                self.policy.version
-            ),
-            primary_candidates=(
-                primary_candidates
-            ),
-            supporting_candidates=(
-                supporting_candidates
-            ),
+            retrieval_rule_version=(self.policy.version),
+            primary_candidates=(primary_candidates),
+            supporting_candidates=(supporting_candidates),
         )

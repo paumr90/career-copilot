@@ -203,6 +203,7 @@ def test_provider_telemetry_is_recorded_in_assessment_audit() -> None:
         )
 
         assert telemetry == {
+            "discarded_unknown_evidence_ids": [],
             "provider_name": "fake_telemetry",
             "provider_version": "0.1",
             "model_name": "fake-model",

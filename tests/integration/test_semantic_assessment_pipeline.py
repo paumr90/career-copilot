@@ -245,8 +245,8 @@ def test_provider_pipeline_can_score_valid_proposal() -> None:
                 "mode": "provider",
                 "provider_name": "static_local",
                 "provider_version": "0.1",
-                "semantic_rule_version": "0.1",
-                "projection_rule_version": "0.1",
+                "semantic_rule_version": "0.2",
+                "projection_rule_version": "0.2",
             }
         )
 
@@ -254,7 +254,7 @@ def test_provider_pipeline_can_score_valid_proposal() -> None:
             assessment_evaluation
             .input_json["rules_snapshot"]
             ["semantic_assessment"]["version"]
-            == "0.1"
+            == "0.2"
         )
 
         assert (
@@ -269,7 +269,7 @@ def test_provider_pipeline_can_score_valid_proposal() -> None:
             .input_json["rules_snapshot"]
             ["semantic_evidence_projection"]
             ["version"]
-            == "0.1"
+            == "0.2"
         )
 
         assert session.scalar(

@@ -46,7 +46,7 @@ def test_builder_creates_extraction_request() -> None:
 
     assert (
         request.extraction_rule_version
-        == "0.1"
+        == "0.2"
     )
 
     assert request.company == raw_job.company

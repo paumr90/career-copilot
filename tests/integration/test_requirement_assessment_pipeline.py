@@ -101,13 +101,13 @@ def test_pipeline_prepares_governed_context() -> None:
         assert (
             context.ranking_result
             .retrieval_rule_version
-            == "0.1"
+            == "0.3"
         )
 
         assert (
             context.ranking_result
             .ranking_rule_version
-            == "0.1"
+            == "0.2"
         )
 
         assert (
@@ -255,14 +255,14 @@ def test_pipeline_can_validate_score_and_audit_proposal() -> None:
             assessment_evaluation
             .input_json["rules_snapshot"]
             ["evidence_retrieval"]["version"]
-            == "0.1"
+            == "0.3"
         )
 
         assert (
             assessment_evaluation
             .input_json["rules_snapshot"]
             ["evidence_ranking"]["version"]
-            == "0.1"
+            == "0.2"
         )
 
         assert (
