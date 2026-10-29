@@ -96,14 +96,14 @@ The application is a **modular monolith**, organised into profile, opportunities
 
 ```text
 app/
-â”œâ”€â”€ domain/                 # Enums and rule policies
-â”œâ”€â”€ infrastructure/db/      # Database setup
-â””â”€â”€ modules/
-    â”œâ”€â”€ profile/
-    â”œâ”€â”€ opportunities/
-    â”œâ”€â”€ fit/
-    â”œâ”€â”€ governance/
-    â””â”€â”€ audit/
+|-- domain/                 # Enums and rule policies
+|-- infrastructure/db/      # Database setup
+`-- modules/
+    |-- profile/
+    |-- opportunities/
+    |-- fit/
+    |-- governance/
+    `-- audit/
 migrations/
 rules/
 seeds/career_master/
@@ -200,7 +200,7 @@ The MVP is intentionally kept small and modular so each capability can be tested
 
 ## License
 
-Copyright Â© 2026 Pau Modolell. All rights reserved.
+Copyright (c) 2026 Pau Modolell. All rights reserved.
 
 This repository is shared publicly for portfolio and educational purposes.
 No permission is granted to reproduce, distribute or create derivative works
