@@ -1,218 +1,184 @@
 # Career Copilot
 
-> An AI-assisted career management and job application decision-support system.
+> Evidence-based career and job-opportunity decision support, combining structured data, AI assistance and deterministic rules.
 
-Career Copilot is a personal project designed to structure professional information, evaluate job opportunities and support the end-to-end job application lifecycle.
+Career Copilot is a personal software project for organising professional information and assessing job opportunities against traceable evidence.
 
-The project explores how **AI, structured data and deterministic business rules** can work together to provide useful decision support without losing traceability, governance or human control.
+The wider product vision covers the application lifecycle. The implemented core focuses on **professional profiles, job-description intake, requirement assessment and auditable fit scoring**.
 
-## Why this project?
+## Development status
 
-Job searching involves information scattered across CVs, job descriptions, emails, application portals and personal notes.
+**Status as of 29 October 2026: backend prototype under active validation.**
 
-Career Copilot aims to turn that fragmented information into a structured system capable of supporting decisions such as:
+The public `main` branch and the latest local development version are currently different:
 
-- Is this opportunity worth pursuing?
-- How well does it match the professional profile?
-- Which requirements are strong matches or gaps?
-- How should the candidate position their experience?
-- What is the current status of each application?
-- What patterns can be learned across multiple selection processes?
+| Area | Published backend | Latest local development — not yet published |
+|---|---|---|
+| Professional profile | Structured profile import, canonical sources and fact provenance | Versioned reconciliation of profile updates with preserved history |
+| Job descriptions | Opportunity storage, deterministic and OpenAI extraction, verbatim source validation | Broader responsibility extraction and a source-bullet coverage inventory |
+| Evidence | Governed retrieval, lexical ranking and data minimisation | Multilingual relevance expansion and protection against primary evidence being displaced |
+| Assessment | OpenAI semantic proposals checked against deterministic rules | Immediate validation, one corrective retry and an audit of rejected attempts |
+| Fit results | Deterministic scoring and uncertainty handling | Professional score separated from practical conditions, with coverage and provisional status |
+| Review workflow | Business services callable from Python | Local CLI for extraction, explicit requirement review and evaluation |
+| Tests | Unit and PostgreSQL integration tests | 212 tests passing with synthetic data in an automatically isolated PostgreSQL schema |
 
-The objective is not to automate career decisions, but to build a **human-in-the-loop decision-support system**.
+The local test result was verified on **28 October 2026**. It applies to the unpublished development version, not to a fresh checkout of the public branch.
 
-## Core design principles
+There is **no product web interface or complete application tracker yet**. The public FastAPI entry point currently exposes a health check; business workflows are implemented as Python services.
 
-The MVP follows a set of explicit governance principles:
+## What the backend does
 
-- **Structured data before prompting**
-- **Deterministic rules separated from LLM reasoning**
-- **No invented professional facts**
-- **Traceability of important data to its source**
-- **Human approval for consequential actions**
-- **No autonomous external actions**
-- **Personal and sensitive information remains private**
-- **Small, modular and testable MVP architecture**
-
-## Current scope
-
-Career Copilot is being developed incrementally around the following functional areas:
-
-### Professional profile
-
-Structured representation of experience, education, skills and career objectives.
-
-### Opportunities
-
-Storage and analysis of job opportunities and their requirements.
-
-### Fit assessment
-
-Evaluation of the match between a professional profile and a job opportunity using explicit rules and evidence.
-
-### Governance
-
-Rules controlling how information is interpreted, modified and used by the system.
-
-### Auditability
-
-Traceability of relevant facts, decisions and changes.
-
-### AI layer
-
-LLM capabilities are designed as an assistance layer rather than the source of truth. Structured data and deterministic rules remain separate from generated reasoning.
-
-## Architecture
-
-The MVP uses a **modular monolith** architecture.
+The central workflow is:
 
 ```mermaid
-flowchart TD
-    Sources[External & Local Sources] --> App[Career Copilot]
-
-    App --> Profile[Profile Module]
-    App --> Opportunities[Opportunities Module]
-    App --> Fit[Fit Module]
-    App --> Governance[Governance Module]
-    App --> Audit[Audit Module]
-
-    Profile --> DB[(PostgreSQL)]
-    Opportunities --> DB
-    Fit --> DB
-    Governance --> DB
-    Audit --> DB
-
-    Fit --> Rules[Deterministic Rules Engine]
-    App --> LLM[LLM Assistance Layer]
-
-    Rules --> Decision[Decision Support]
-    LLM --> Decision
+flowchart LR
+    Profile[Canonical professional facts] --> Retrieve[Retrieve and rank evidence]
+    JD[Job description] --> Extract[Extract and validate requirements]
+    Extract --> Retrieve
+    Retrieve --> Propose[AI assessment proposals]
+    Propose --> Validate[Deterministic validation]
+    Validate --> Score[Fit score and recommendation]
+    Validate --> Audit[Audit trail]
+    Score --> Audit
 ```
 
-The architecture intentionally keeps deterministic business logic independent from the LLM layer.
+The backend provides:
 
-## Technology stack
+- **Profile import:** structured facts about experience, education, skills and career objectives, linked to their source.
+- **Job-description intake:** stored opportunities and requirements, with evidence excerpts grounded in the original description.
+- **Evidence selection:** retrieval and ranking of eligible, confirmed profile facts for each requirement.
+- **Semantic assessment:** AI-assisted proposals of `MATCH`, `PARTIAL_MATCH`, `GAP` or `UNKNOWN`.
+- **Deterministic scoring:** explicit weights, blocking rules and uncertainty rules, separate from the language model.
+- **Auditability:** recorded inputs, outputs, rule versions and provider telemetry.
 
-- **Python**
-- **PostgreSQL**
-- **Docker / Docker Compose**
-- **Alembic**
-- **Pytest**
-- **LLM integration**
-- **Git / GitHub**
+OpenAI integration is implemented for extraction and semantic assessment. The model proposes an interpretation; it does not determine the numerical score.
 
-## Project structure
+## Interpreting a result
+
+A score is useful only alongside its **evidence coverage and unresolved requirements**.
+
+- Missing evidence is `UNKNOWN`; it does not establish a gap.
+- A confirmed gap needs affirmative evidence of contradiction or non-compliance.
+- Unknown requirements are excluded from the numerical score denominator, so a high score can coexist with incomplete evidence.
+- Lexical similarity is a retrieval signal, not proof of professional competence.
+- Recommendations support human review; they do not submit applications or make career decisions.
+
+The local development version also reports salary, residence, vehicle ownership and work arrangements separately from professional fit.
+
+## Governance and privacy
+
+The project follows these principles:
+
+- Structured data before prompting.
+- Deterministic business rules separated from AI reasoning.
+- No invented professional facts.
+- Traceability to source evidence.
+- Human review of consequential decisions.
+- No autonomous external actions.
+- Minimal, explicitly selected evidence sent to external model providers.
+
+This public repository does **not** contain the author's real career profile, applications, credentials or private evaluation reports. Example and synthetic data illustrate the expected structures.
+
+Environment files and private `*.local.json` data are excluded from version control.
+
+## Architecture and stack
+
+The application is a **modular monolith**, organised into profile, opportunities, fit, governance and audit modules.
+
+- Python **3.14+**
+- FastAPI and Pydantic
+- SQLAlchemy and PostgreSQL
+- Alembic migrations
+- OpenAI SDK
+- YAML-based rule configuration
+- Docker Compose
+- Pytest and Ruff
 
 ```text
-career-copilot/
-│
-├── app/
-│   ├── domain/
-│   ├── infrastructure/
-│   └── modules/
-│       ├── audit/
-│       ├── fit/
-│       ├── governance/
-│       ├── opportunities/
-│       └── profile/
-│
-├── migrations/
-├── rules/
-├── seeds/
-├── tests/
-│
-├── .env.example
-├── alembic.ini
-├── docker-compose.yml
-├── pyproject.toml
-└── README.md
+app/
+├── domain/                 # Enums and rule policies
+├── infrastructure/db/      # Database setup
+└── modules/
+    ├── profile/
+    ├── opportunities/
+    ├── fit/
+    ├── governance/
+    └── audit/
+migrations/
+rules/
+seeds/career_master/
+tests/
 ```
 
-## Data and privacy
+## Running the published snapshot locally
 
-This public repository does **not** contain my real career profile, applications, credentials or personal datasets.
-
-Example files are included where useful to illustrate the expected data structures.
-
-Local data files, environment variables, credentials and other private information are explicitly excluded from version control.
-
-## Local development
-
-### 1. Clone the repository
+### 1. Install
 
 ```bash
 git clone https://github.com/paumr90/career-copilot.git
 cd career-copilot
+python -m venv .venv
 ```
 
-### 2. Create the environment configuration
+Activate the virtual environment, then install the project and development dependencies:
 
-Copy:
-
-```text
-.env.example
+```bash
+python -m pip install -e ".[dev]"
 ```
 
-to:
+### 2. Configure
 
-```text
-.env
-```
+Copy `.env.example` to `.env` and set the local database configuration.
 
-and configure the required local values.
+For real model calls, configure `LLM_PROVIDER`, `LLM_API_KEY` and `LLM_MODEL` locally. Use a model available to your API account. Do not commit credentials.
 
-### 3. Start PostgreSQL
+### 3. Start PostgreSQL and migrate
 
 ```bash
 docker compose up -d
-```
-
-### 4. Install the project
-
-Create and activate a Python virtual environment and install the project dependencies defined in `pyproject.toml`.
-
-### 5. Run database migrations
-
-```bash
 alembic upgrade head
 ```
 
-### 6. Run tests
+### 4. Run the health endpoint
 
 ```bash
-pytest
+uvicorn app.main:app --reload
 ```
 
-## Development approach
+The health check is available at `/health`.
 
-The project is intentionally being built as a **small functional MVP rather than a large agent architecture**.
+### 5. Run tests
 
-New capabilities are added only when they provide clear user value or are required for correctness, security or maintainability.
+```bash
+pytest tests/unit
+```
 
-This keeps the system understandable, testable and easy to evolve.
+The public snapshot's integration tests require a migrated, seeded PostgreSQL database. Some tests depend on assumptions about the original profile dataset; the public example seed is not a complete replacement for that dataset.
 
-## Roadmap
+The unpublished local suite removes that dependency by creating a temporary schema, running migrations and loading synthetic fixtures. Its CLI and isolated test setup will be documented as runnable public features when their code is published.
 
-Planned areas of development include:
+## Known limitations
 
-- richer opportunity ingestion;
-- requirement extraction;
-- evidence-based fit scoring;
-- application pipeline tracking;
-- CV and positioning support;
-- interview preparation;
-- feedback analysis;
-- controlled external integrations;
-- improved AI-assisted decision support.
+Validation has identified several areas that need further work:
 
-## Context
+- Evidence selection can omit relevant facts.
+- Extracted lists can miss responsibilities, combine distinct capabilities or duplicate related criteria.
+- Source-bullet coverage does not prove semantic completeness.
+- AI assessments can overstate transferable experience, particularly for architecture and specialised responsibilities.
+- Practical conditions need explicit facts: a location preference does not prove residence, and an overlapping salary band is not a confirmed offer.
 
-Career Copilot is a personal project exploring the practical application of
-**AI, data modelling, governance and software architecture** to a real-world
-professional workflow.
+Passing software tests does not establish assessment quality. Real job descriptions are being compared against manually reviewed reference assessments.
 
-It also serves as a hands-on environment for translating business requirements
-into a working technical product.
+## Next milestones
+
+1. Compare the current workflow across several contrasting job opportunities.
+2. Resolve recurring extraction, evidence-selection and assessment discrepancies.
+3. Publish the validated local workflow and self-contained test setup.
+4. Build a minimal interface for requirement review and evidence inspection.
+5. Add application stages, interviews, follow-ups and archival.
+6. Explore CV support and controlled external integrations.
+
+The MVP is intentionally kept small and modular so each capability can be tested and reviewed before the product expands.
 
 ## License
 
